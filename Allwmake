@@ -22,6 +22,11 @@
 #     You should have received a copy of the GNU General Public License
 #     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 #
+# Modifications
+#     This file has been modified by blueCAPE's unofficial mingw patches for OpenFOAM.
+#     For more information about these patches, visit:
+#         http://www.bluecape.com.pt/blueCFD
+#
 # Script
 #     Allwmake
 #
@@ -43,6 +48,7 @@ wmakeCheckPwd "$WM_THIRD_PARTY_DIR" || {
     exit 1
 }
 . etc/tools/ThirdPartyFunctions
+. etc/tools/makeExtraThirdPartyFunctions
 #------------------------------------------------------------------------------
 
 # export WM settings in a form that GNU configure recognizes
@@ -58,12 +64,38 @@ echo Start ThirdParty Allwmake
 echo ========================================
 echo
 
+if isMinGW; then
+    echo ========================================
+    echo Compile zlib library
+    echo
+    ./AllwmakeZLib
+
+    echo ========================================
+    echo Compile regex library
+    echo
+    ./AllwmakeRegEx
+
+    #this stack tracing should work.
+    wmake libso stack_trace
+
+    echo ========================================
+    echo Copying gcc related DLLs
+    echo
+    cp $WM_COMPILER_DIR/bin/*.dll $FOAM_LIBBIN
+fi
+
 
 echo ========================================
 echo Build MPI libraries if required
 echo
 case "$WM_MPLIB" in
 OPENMPI)
+  if isMinGW; then
+
+    echo "Setup Open-MPI stubs..."
+    ./genOPENMPIstubs
+
+  else
     if [ -r $MPI_ARCH_PATH/lib/libmpi.so ]
     then
         echo "    have $WM_MPLIB shared library ($FOAM_MPI)"
@@ -106,9 +138,17 @@ OPENMPI)
         make distclean
     )
     fi
+  fi
     ;;
 
 MPICH)
+  if isMinGW; then
+
+    echo "Setup MPICH2 stubs..."
+    ./genMPICH2stubs
+
+  else
+
     if [ -r $MPI_ARCH_PATH/lib/libmpich.so ]
     then
         echo "    have $WM_MPLIB shared library ($FOAM_MPI)"
@@ -164,8 +204,22 @@ MPICH)
         fi
     )
     fi
+  fi
     ;;
 
+MSMPI)
+  if isMinGW; then
+
+    echo "Setup MSMPI stubs..."
+    ./genMSMPIstubs
+
+  else
+
+    echo "Error : MSMPI isn't available for platforms other than MinGW."
+    exit 1
+
+  fi
+    ;;
 esac
 
 
@@ -178,6 +232,14 @@ else
     echo "Error: no config/scotch.sh settings"
     echo
 fi
+
+#either build the MinGW version or the standard version
+if isMinGW; then
+
+  ./AllwmakeMinGWScotch
+
+else
+
 
 # building scotch is still a bit of a pain
 echo ========================================
@@ -302,6 +364,7 @@ then
     }
 fi
 
+fi #end if isMinGW
 
 # -----------------------------------------------------------------------------
 
@@ -314,6 +377,12 @@ then
     set -x
     cd tecio || exit 1
     cpMakeFiles tecio
+
+    if isMinGW && [ ! -e "mingw.patch.complete" ]; then
+        chmod -R +w *
+        patch -p1 < $WM_THIRD_PARTY_DIR/etc/patches/patch_tecio2009 && \
+          touch mingw.patch.complete
+    fi
 
     wmake libso tecsrc
 )

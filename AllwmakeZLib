@@ -1,0 +1,61 @@
+#!/bin/sh
+#------------------------------------------------------------------------------
+# License
+#     This file is part of blueCAPE's unofficial mingw patches for OpenFOAM.
+#     For more information about these patches, visit:
+#         http://www.bluecape.com.pt/blueCFD
+#
+#     OpenFOAM's official site: http://www.openfoam.com
+#
+#     OpenFOAM is free software: you can redistribute it and/or modify it
+#     under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#
+#     OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+#     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#     for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Script
+#     AllwmakeZLib
+#
+# Description
+#     Build script for ZLib (should be valid for both mingw and Linux).
+#
+#------------------------------------------------------------------------------
+# run from third-party directory only
+cd ${0%/*} || exit 1
+wmakeCheckPwd "$WM_THIRD_PARTY_DIR" || {
+    echo "Error: Current directory is not \$WM_THIRD_PARTY_DIR"
+    echo "    The environment variables are inconsistent with the installation."
+    echo "    Check the OpenFOAM entries in your dot-files and source them."
+    exit 1
+}
+. etc/tools/ThirdPartyFunctions
+. etc/tools/makeExtraThirdPartyFunctions
+
+
+#set script options
+ZLIBVERSION=`. etc/defaults.sh ; echo \$zlib_version`
+ZLIBNAMENVERSION="zlib-$ZLIBVERSION"
+
+#check if download is necessary
+isProjectInstalled $ZLIBNAMENVERSION
+if [ "$ALREADYUNPACKED" != "Yes" ]; then
+  ./get-em so zlib=$ZLIBVERSION || exit 1
+fi
+
+#check if unpacked successfully and if the Make folder exists
+isProjectInstalled $ZLIBNAMENVERSION/Make
+if [ "$ALREADYUNPACKED" != "Yes" ]; then
+  #apply patches
+  echo "Copying Make files"
+  ( cd $ZLIBNAMENVERSION && cpMakeFiles zlib )
+fi
+
+#build the library
+wmake libso $ZLIBNAMENVERSION

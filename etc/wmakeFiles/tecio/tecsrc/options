@@ -7,3 +7,5 @@ EXE_INC = \
 
 LIB_LIBS = \
     $(TECIO_LIBS)
+
+PROJECT_LIBS=

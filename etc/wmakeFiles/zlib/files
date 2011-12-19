@@ -1,0 +1,23 @@
+adler32.c
+compress.c
+crc32.c
+deflate.c
+
+/* for 1.2.3 */
+/* gzio.c */
+
+/* for 1.2.5 */
+gzlib.c
+gzclose.c
+gzwrite.c
+gzread.c
+
+infback.c
+inffast.c
+inflate.c
+inftrees.c
+trees.c
+uncompr.c
+zutil.c
+
+LIB = $(FOAM_LIBBIN)/libz

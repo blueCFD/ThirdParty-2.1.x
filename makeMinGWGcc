@@ -1,0 +1,694 @@
+#! /bin/sh
+#------------------------------------------------------------------------------
+# License
+#     This file is part of blueCAPE's unofficial mingw patches for OpenFOAM.
+#     For more information about these patches, visit:
+#         http://www.bluecape.com.pt/blueCFD
+#
+#     OpenFOAM's official site: http://www.openfoam.com
+#
+#     OpenFOAM is free software: you can redistribute it and/or modify it
+#     under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#
+#     OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+#     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#     for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Script
+#     makeMinGWGcc
+#
+# Description
+#     Build script for mingw with gcc 4.x.y. It works with mingw32, mingw-w32
+#   and mingw-w64.
+#   This build script was originally based on the build script available at
+#     http://www.symscape.com/files/articles/openfoam-windows/build-mingw
+#
+#------------------------------------------------------------------------------
+# run from third-party directory only
+cd ${0%/*} || exit 1
+wmakeCheckPwd "$WM_THIRD_PARTY_DIR" || {
+  echo "Error: Current directory is not \$WM_THIRD_PARTY_DIR"
+  echo "    The environment variables are inconsistent with the installation."
+  echo "    Check the OpenFOAM entries in your dot-files and source them."
+  exit 1
+}
+. etc/tools/ThirdPartyFunctions
+. etc/tools/makeExtraThirdPartyFunctions
+#------------------------------------------------------------------------------
+
+usage() {
+    exec 1>&2
+    while [ "$#" -ge 1 ]; do echo "$1"; shift; done
+    cat<<USAGE
+
+usage: ${0##*/} [cross4win]
+
+* Builds compiler Gcc/G++ with MinGW capabilities to run in Linux/Cygwin.
+* Option "cross4win" will compile the version Windows version of the compiler.
+
+USAGE
+    exit 1
+}
+
+CROSS4WIN=0
+# parse options
+while [ "$#" -gt 0 ]
+do
+    case "$1" in
+    -h | -help)
+        usage
+        ;;
+    cross4win)
+        CROSS4WIN=1
+        shift
+        ;;
+    *)
+        usage "unknown option/argument: '$*'"
+        ;;
+    esac
+done
+
+#-----------------------------------------------------
+#
+# BEGIN USER SETTINGS
+#
+# All settings are now defined in etc/defaults.sh
+#
+#-----------------------------------------------------
+
+#GNU GCC and company
+GCCVERSION=`. etc/defaults.sh ; echo \$gcc_version`
+GMPVERSION=`. etc/defaults.sh ; echo \$gmp_version`
+MPFRVERSION=`. etc/defaults.sh ; echo \$mpfr_version`
+MPCVERSION=`. etc/defaults.sh ; echo \$mpc_version`
+BINUTILSVERSION=`. etc/defaults.sh ; echo \$binutils_version`
+
+#MinGW versions
+MINGW32RTVERSION=`. etc/defaults.sh ; echo \$mingw32rt_version`
+W32APIVERSION=`. etc/defaults.sh ; echo \$w32api_version`
+MINGW_W64_VERSION=`. etc/defaults.sh ; echo \$mingw_w64_version`
+
+#LOG FOLDER
+LOG_FOLDER="$WM_THIRD_PARTY_DIR/../buildLogs"
+
+#-----------------------------------------------------
+#
+# END USER SETTINGS
+#
+# The remainder of the script should not neet any edits
+#
+#-----------------------------------------------------
+
+
+# What flavor of GCC cross-compiler are we building?
+case $WM_COMPILER in
+mingw32 | mingw-w32)
+  echo "This compiler $WM_COMPILER is currently supported for building the mingw cross-compiler."
+  TARGET=i686-pc-mingw32 #32bits
+  ;;
+mingw-w64)
+  echo "This compiler $WM_COMPILER is currently supported for building the mingw cross-compiler."
+  TARGET=x86_64-w64-mingw32 #64bits
+  ;;
+*)
+  echo "Error: this compiler $WM_COMPILER is not supported."
+  exit 1
+  ;;
+esac
+
+# What build should we make
+# definedBUILDmachine
+
+#WM_COMPILER_DIR <- this is the prefix for all builds made here!
+#buildBASE <- this is where the things are going to be built
+#$buildBASE/$---VERSION <- this is where each package is going to be built
+#$WM_THIRD_PARTY_DIR/$---VERSION <- this is where each source folder will be
+
+GCC_HOME="$WM_THIRD_PARTY_DIR/$GCCVERSION"
+GMP_HOME="$WM_THIRD_PARTY_DIR/$GMPVERSION"
+MPFR_HOME="$WM_THIRD_PARTY_DIR/$MPFRVERSION"
+MPC_HOME="$WM_THIRD_PARTY_DIR/$MPCVERSION"
+
+BINUTILS_HOME="$WM_THIRD_PARTY_DIR/$BINUTILSVERSION"
+
+MINGW32RT_HOME="$WM_THIRD_PARTY_DIR/$MINGW32RTVERSION"
+W32API_HOME="$WM_THIRD_PARTY_DIR/$W32APIVERSION"
+
+MINGW_W64_HOME="$WM_THIRD_PARTY_DIR/mingw-w64-crt-$MINGW_W64_VERSION"
+
+if [ $CROSS4WIN -eq 0 ]; then
+  PREFIX="$WM_COMPILER_DIR"
+  CONFIGHOST=""
+else
+  PREFIX="${WM_COMPILER_DIR}_win"
+  CONFIGHOST="--host=${TARGET}"
+  buildBASE="${buildBASE}_win"
+fi
+
+if [ -d "$PREFIX" ]; then
+  if [ $CROSS4WIN -eq 0 ]; then
+    echo "It seems that there is already an existing mingw cross-compiler installed."
+  else
+    echo "It seems that there is already an existing mingw compiler for Windows installed."
+  fi
+  echo "Do you wish to remove it and update it to the latest available version? (yes or no)"
+  read answer
+  case $answer in
+      yes | y | Y | Yes | YES)
+        rm -rf "$PREFIX"
+        ;;
+      *)
+        echo "Installation aborted."
+        exit 1
+        ;;
+  esac
+fi
+
+#make sure the log folder exists and expand its path
+if [ ! -d "$LOG_FOLDER" ]; then
+  mkdir -p $LOG_FOLDER
+fi
+LOG_FOLDER=`( cd "$LOG_FOLDER" && pwd )`
+
+GCC_BDIR="$buildBASE/$GCCVERSION"
+BINUTILS_BDIR="$buildBASE/$BINUTILSVERSION"
+
+MINGW32RT_BDIR="$buildBASE/$MINGW32RTVERSION"
+W32API_BDIR="$buildBASE/$W32APIVERSION"
+
+MINGW_W64_BDIR="$buildBASE/mingw-w64-crt-$MINGW_W64_VERSION"
+
+
+# Make sure these are initialized as we want them
+GCC_LANGS="c,c++"
+
+
+
+#-----------------------------------------------------
+#
+# Functions that do most of the work
+#
+#-----------------------------------------------------
+
+get_em_all()
+{
+  if [ ! -d "$GMP_HOME" ]; then
+    ./get-em so gmp=default || {
+      echo "Unable to retrieve and unpack necessary files for GMP."
+      exit 1
+    }
+  fi
+  if [ ! -d "$MPFR_HOME" ]; then
+    ./get-em so mpfr=default || {
+      echo "Unable to retrieve and unpack necessary files for MPFR."
+      exit 1
+    }
+  fi
+  if [ -n "$MPCVERSION" ]; then
+    if [ ! -d "$MPC_HOME" ]; then
+      ./get-em so mpc=default || {
+        echo "Unable to retrieve and unpack necessary files for MPC."
+        exit 1
+      }
+    fi
+  fi
+  if [ ! -d "$GCC_HOME" ]; then
+    ./get-em so gcc=default || {
+      echo "Unable to retrieve and unpack necessary files for GCC."
+      exit 1
+    }
+  fi
+  if [ ! -d "$BINUTILS_HOME" ]; then
+    ./get-em so binutils=default || {
+      echo "Unable to retrieve and unpack necessary files for BINUTILS."
+      exit 1
+    }
+  fi
+
+  case $WM_COMPILER in
+    mingw32)
+      if [ ! -d "$MINGW32RT_HOME" ]; then
+        ./get-em so mingwrt=default || {
+          echo "Unable to retrieve and unpack necessary files for MinGW-RT."
+          exit 1
+        }
+      fi
+      if [ ! -d "$W32API_HOME" ]; then
+        ./get-em so w32api=default || {
+          echo "Unable to retrieve and unpack necessary files for W32API."
+          exit 1
+        }
+      fi
+      ;;
+    mingw-w32 | mingw-w64)
+      if [ ! -d "$MINGW_W64_HOME" ]; then
+        ./get-em so mingw-w64-crt=default || {
+          echo "Unable to retrieve and unpack necessary files for MinGW-w64."
+          exit 1
+        }
+      fi
+      ;;
+  esac
+}
+
+
+do_links_GM()
+{
+  #hook up gmp, mpfr and mpc to gcc's folder
+  if [ ! -d "$GCC_HOME/gmp" ]; then
+    ln -s $GMP_HOME $GCC_HOME/gmp
+  fi
+  if [ ! -d "$GCC_HOME/mpfr" ]; then
+    ln -s $MPFR_HOME $GCC_HOME/mpfr
+  fi
+  if [ -n "$MPCVERSION" ]; then
+    if [ ! -d "$GCC_HOME/mpc" ]; then
+      ln -s $MPC_HOME $GCC_HOME/mpc
+    fi
+  fi
+}
+
+
+configure_binutils()
+{
+  [ -d "$BINUTILS_BDIR" ] && rm -rf "$BINUTILS_BDIR"
+  mkdir -p "$BINUTILS_BDIR"
+  cd "$BINUTILS_BDIR"
+  echo "Configuring binutils"
+  "$BINUTILS_HOME/configure" --prefix=${PREFIX} \
+      $CONFIGHOST --target=${TARGET} --disable-nls \
+      --with-sysroot=${PREFIX}  --disable-multilib \
+      --with-host-libstdcxx='-lstdc++' --with-gcc \
+      --with-gnu-as --with-gnu-ld --enable-shared --disable-rpath \
+      --disable-werror \
+      > ${LOG_FOLDER}/binutils-${WM_COMPILER}_configure.log  2>&1
+      #--libdir=$PREFIX/$TARGET/lib --includedir=$PREFIX/$TARGET/include  --with-build-sysroot=$PREFIX
+  if test $? -ne 0; then
+    echo "make of binutils failed - log available: ${LOG_FOLDER}/binutils-${WM_COMPILER}_configure.log"
+    exit 1
+  fi
+}
+
+
+build_binutils()
+{
+  cd "$BINUTILS_BDIR"
+  echo "Building binutils"
+  # -fno-exceptions
+  make -j $WM_NCOMPPROCS CFLAGS="-O2" LDFLAGS="-s" > \
+    ${LOG_FOLDER}/binutils-${WM_COMPILER}_make.log 2>&1
+  if test $? -ne 0; then
+    echo "make of binutils failed - log available: ${LOG_FOLDER}/binutils-${WM_COMPILER}_make.log"
+    exit 1
+  fi
+}
+
+
+install_binutils()
+{
+  cd "$BINUTILS_BDIR"
+  echo "Installing binutils"
+  make install > ${LOG_FOLDER}/binutils-${WM_COMPILER}_make-install.log 2>&1
+  if test $? -ne 0; then
+    echo "install of binutils failed - log available: ${LOG_FOLDER}/binutils-${WM_COMPILER}_make-install.log"
+    exit 1
+  fi
+}
+
+
+setup_mingw32_headersNlinks_win()
+{
+  echo "setting up the mingw32 headers and symlinks"
+  [ ! -L "$PREFIX/mingw" ] && ln -sv $TARGET "$PREFIX/mingw"
+  [ ! -d "$PREFIX/mingw" ] && mkdir "$PREFIX/$TARGET/lib"
+  cp -r "${WM_COMPILER_DIR}/mingw"/* "$PREFIX/mingw/"
+}
+
+
+setup_mingw32_headersNlinks()
+{
+  echo "setting up the mingw32 headers and symlinks"
+  [ ! -L "$PREFIX/mingw" ] && ln -sv $TARGET "$PREFIX/mingw"
+  [ ! -d "$PREFIX/mingw" ] && mkdir "$PREFIX/$TARGET/lib"
+  cp -r ${MINGW32RT_HOME}/* "$PREFIX/mingw/"
+  cp -r ${W32API_HOME}/* "$PREFIX/mingw/"
+}
+
+
+conf_inst_mingw_w64_headers()
+{
+  #Use the same folder as the CRT for building, since CRT's related configure
+  #will make a cleanup before using this folder.
+  [ -d "$MINGW_W64_BDIR" ] && rm -rf "$MINGW_W64_BDIR"
+  mkdir -p "$MINGW_W64_BDIR"
+  cd "$MINGW_W64_BDIR"
+  echo "Configuring mingw-w64-headers"
+  "$MINGW_W64_HOME/mingw-w64-headers/configure" --prefix=${PREFIX} \
+      $CONFIGHOST --host=${TARGET} \
+      > ${LOG_FOLDER}/mingw-w64-headers-${WM_COMPILER}_configure.log 2>&1
+  if test $? -ne 0; then
+    echo "configure of mingw-w64-headers failed - log available: ${LOG_FOLDER}/mingw-w64-headers-${WM_COMPILER}_configure.log"
+    exit 1
+  fi
+
+  echo "Installing mingw-w64-headers"
+  make install > ${LOG_FOLDER}/mingw-w64-headers-${WM_COMPILER}_install.log 2>&1
+  if test $? -ne 0; then
+    echo "install of mingw-w64-headers failed - log available: ${LOG_FOLDER}/mingw-w64-headers-${WM_COMPILER}_install.log"
+    exit 1
+  fi
+}
+
+
+setup_mingw_w64_headersNlinks()
+{
+  echo "setting up the mingw-w64 headers and symlinks"
+  conf_inst_mingw_w64_headers
+#   cd "$MINGW_W64_HOME/mingw-w64-headers"
+#   cp -r include "$PREFIX/$TARGET/"
+  [ ! -L "$PREFIX/mingw" ] && ln -sv $TARGET $PREFIX/mingw
+  [ ! -d "$PREFIX/mingw" ] && mkdir "$PREFIX/$TARGET/lib"
+  [ ! -L "$PREFIX/$TARGET/lib64" ] && ln -sv lib $PREFIX/$TARGET/lib64
+}
+
+setup_mingw_w64_headersNlinks_win()
+{
+  echo "setting up the mingw-w64 winsup headers and symlinks"
+  [ -L "$GCC_HOME/winsup" ] && unlink "$GCC_HOME/winsup"
+  [ ! -L "$GCC_HOME/winsup" ] && ln -s "$WM_COMPILER_DIR" "$GCC_HOME/winsup"
+}
+
+
+build_gcc_core()
+{
+  cd "$GCC_BDIR"
+  echo "Building gcc core"
+  make -j $WM_NCOMPPROCS CFLAGS="-O2" CXXFLAGS="-O2" GCJFLAGS="-O2" LDFLAGS="-s" \
+    DEBUG_FLAGS="-g0" all-gcc > ${LOG_FOLDER}/gcccore-${WM_COMPILER}_make.log 2>&1
+  if test $? -ne 0; then
+    echo "make of gcc core failed - log available: ${LOG_FOLDER}/gcccore-${WM_COMPILER}_make.log"
+    exit 1
+  fi
+}
+
+
+install_gcc_core()
+{
+  cd "$GCC_BDIR"
+  echo "Installing gcc core"
+  make install-gcc > ${LOG_FOLDER}/gcccore-${WM_COMPILER}_make-install.log 2>&1
+  if test $? -ne 0; then
+    echo "install of gcc core failed - log available:  ${LOG_FOLDER}/gcccore-${WM_COMPILER}_make-install.log"
+    exit 1
+  fi
+}
+
+
+configure_mingw_w64crt()
+{
+  [ -d "$MINGW_W64_BDIR" ] && rm -rf "$MINGW_W64_BDIR"
+  mkdir -p "$MINGW_W64_BDIR"
+  cd "$MINGW_W64_BDIR"
+  echo "Configuring mingw-w64-crt"
+  "$MINGW_W64_HOME/mingw-w64-crt/configure" --prefix=${PREFIX} \
+      --host=${TARGET} --with-sysroot=${PREFIX} \
+      > ${LOG_FOLDER}/mingw-w64-${WM_COMPILER}_configure.log 2>&1
+      # --with-build-sysroot=$PREFIX
+  if test $? -ne 0; then
+    echo "configure of mingw-w64-crt failed - log available: ${LOG_FOLDER}/mingw-w64-${WM_COMPILER}_configure.log"
+    exit 1
+  fi
+}
+
+
+build_mingw_w64crt()
+{
+  cd "$MINGW_W64_BDIR"
+  echo "Building mingw-w64-crt"
+  # -fno-exceptions
+  make -j $WM_NCOMPPROCS CFLAGS="-O2" LDFLAGS="-s" > \
+    ${LOG_FOLDER}/mingw-w64-${WM_COMPILER}_make.log 2>&1
+  if test $? -ne 0; then
+    echo "make of mingw-w64-crt failed - log available: ${LOG_FOLDER}/mingw-w64-${WM_COMPILER}_make.log"
+    exit 1
+  fi
+}
+
+
+install_mingw_w64crt()
+{
+  cd "$MINGW_W64_BDIR"
+  echo "Installing mingw-w64-crt"
+  make install > ${LOG_FOLDER}/mingw-w64-${WM_COMPILER}_make-install.log 2>&1
+  if test $? -ne 0; then
+    echo "install of mingw-w64-crt failed - log available: ${LOG_FOLDER}/mingw-w64-${WM_COMPILER}_make-install.log"
+    exit 1
+  fi
+}
+
+
+copy_mingw_w64_crt()
+{
+  echo "Copying mingw-w64-crt from the built version from the cross-compiler"
+  cd "${PREFIX}/${TARGET}/lib"
+  cp -r "${WM_COMPILER_DIR}/${TARGET}/lib"/* .
+}
+
+
+configure_gcc_win()
+{
+  [ -d "$GCC_BDIR" ] && rm -rf "$GCC_BDIR"
+  mkdir -p "$GCC_BDIR"
+  cd "$GCC_BDIR"
+  echo "Configuring gcc"
+  ${GCC_HOME}/configure -v \
+    CFLAGS="-I${WM_COMPILER_DIR}/include -L${WM_COMPILER_DIR}/lib" \
+    --prefix=${PREFIX} $CONFIGHOST --target=${TARGET} \
+    --with-sysroot=${PREFIX} --enable-fully-dynamic-strings --disable-werror \
+    --disable-multilib \
+    --with-pkgversion='OpenFOAM' --enable-languages=${GCC_LANGS} \
+    --disable-win32-registry --enable-shared --disable-static --enable-sjlj-exceptions \
+    --without-x --disable-debug \
+    --enable-interpreter --with-host-libstdcxx='-lstdc++' \
+    --with-gcc --with-gnu-ld --with-gnu-as --enable-libstdcxx-allocator=new \
+    --enable-threads=win32 --disable-nls \
+    > ${LOG_FOLDER}/gcc-${WM_COMPILER}_configure.log 2>&1
+
+  if test $? -ne 0; then
+    echo "configure of gcc failed - log available: ${LOG_FOLDER}/gcc-${WM_COMPILER}_configure.log"
+    exit 1
+  fi
+}
+
+
+configure_gcc()
+{
+  [ -d "$GCC_BDIR" ] && rm -rf "$GCC_BDIR"
+  mkdir -p "$GCC_BDIR"
+  cd "$GCC_BDIR"
+  echo "Configuring gcc"
+  ${GCC_HOME}/configure -v \
+    --prefix=${PREFIX} $CONFIGHOST --target=${TARGET} \
+    --with-sysroot=${PREFIX} --enable-fully-dynamic-strings --disable-werror \
+    --disable-multilib \
+    --with-pkgversion='OpenFOAM' --enable-languages=${GCC_LANGS} \
+    --disable-win32-registry --enable-shared --disable-static --enable-sjlj-exceptions \
+    --without-x --disable-debug \
+    --enable-interpreter --with-host-libstdcxx='-lstdc++' \
+    --with-gcc --with-gnu-ld --with-gnu-as --enable-libstdcxx-allocator=new \
+    --enable-threads=win32 --disable-nls \
+    > ${LOG_FOLDER}/gcc-${WM_COMPILER}_configure.log 2>&1
+
+    #--build=$BUILD --host=$BUILD
+    #--with-build-sysroot=$PREFIX
+    #--enable-libstdcxx-debug  --disable-libgcj-debug  --disable-java-awt
+
+    # \
+
+    #--with-system-zlib
+    #--with-mpfr=$PREFIX --with-gmp=$PREFIX \
+    #--with-headers="$PREFIX/$TARGET/include" \
+    #--enable-hash-synchronization
+    #--enable-libgcj   --disable-java-gc=boehm  \
+    #--enable-decimal-float --disable-bootstrap --enable-static
+  if test $? -ne 0; then
+    echo "configure of gcc failed - log available: ${LOG_FOLDER}/gcc-${WM_COMPILER}_configure.log"
+    exit 1
+  fi
+}
+
+
+build_gcc()
+{
+  cd "$GCC_BDIR"
+  echo "Building the rest of gcc"
+  #GCJFLAGS="-O2" DEBUG_FLAGS="-g0"
+  make -j $WM_NCOMPPROCS CFLAGS="-O2" CXXFLAGS="-O2" LDFLAGS="-s" > \
+    ${LOG_FOLDER}/gcc-${WM_COMPILER}_make.log 2>&1
+  if test $? -ne 0; then
+    echo "make of gcc failed - log available: ${LOG_FOLDER}/gcc-${WM_COMPILER}_make.log"
+    exit 1
+  fi
+}
+
+
+install_gcc()
+{
+  cd "$GCC_BDIR"
+  echo "Installing gcc"
+  make install > ${LOG_FOLDER}/gcc-${WM_COMPILER}_make-install.log 2>&1
+  if test $? -ne 0; then
+    echo "install of gcc failed - log available: ${LOG_FOLDER}/gcc-${WM_COMPILER}_make-install.log"
+    exit 1
+  fi
+}
+
+
+createSTDCPPShared()
+{
+  cd "${PREFIX}/mingw/lib"
+  mkdir tmp
+  cd tmp
+
+  #source http://mingw-users.1079350.n2.nabble.com/Complete-libstdc-dll-for-gcc-4-4-0-td3323078.html
+  cp -f ../libstdc++.a libstdc++_t.a
+  ${TARGET}-ar -x libstdc++_t.a array_type_info.o class_type_info.o enum_type_info.o \
+    function_type_info.o fundamental_type_info.o pbase_type_info.o pmem_type_info.o \
+    pointer_type_info.o si_class_type_info.o vmi_class_type_info.o
+  ${TARGET}-ar -d libstdc++_t.a array_type_info.o class_type_info.o enum_type_info.o \
+    function_type_info.o fundamental_type_info.o pbase_type_info.o pmem_type_info.o \
+    pointer_type_info.o si_class_type_info.o vmi_class_type_info.o
+  ${TARGET}-dlltool --export-all --output-def=../libstdc++.def libstdc++_t.a
+  ${TARGET}-gcc -shared -shared-libgcc -o ${PREFIX}/bin/libstdc++-6.dll -Wl,--out-implib,../libstdc++.dll.a \
+            ../libstdc++.def ../libstdc++.a
+  ${TARGET}-ar -rs ../libstdc++.dll.a array_type_info.o class_type_info.o \
+    enum_type_info.o function_type_info.o fundamental_type_info.o pbase_type_info.o \
+    pmem_type_info.o pointer_type_info.o si_class_type_info.o vmi_class_type_info.o
+
+  cd ..
+  rm -rf tmp
+  cp libstdc++.la libstdc++.la.bck.$(date +%Y-%m-%d_%H-%M)
+  sed -i -e 's_\(^dlname=.\)\(.\)_\1../../bin/libstdc++-6.dll\2_' -e 's_\(^library\_names=.\)\(.\)_\1libstdc++.dll.a\2_' libstdc++.la
+}
+
+
+final_tweaks()
+{
+  echo "Finalizing installation"
+
+  # remove gcc build headers
+  rm -rf "${PREFIX}/${WM_COMPILER}/${TARGET}/sys-include"
+
+  # create nice links for the binaries
+#   cd ${PREFIX}/bin
+#   for afile in `find . -name "${TARGET}-*"`; do
+#     LINKNAME=`echo $afile | sed -e 's='${TARGET}'='${WM_COMPILER}'='`
+#     ln -s $afile $LINKNAME
+#   done
+
+  # strip all the binaries
+#   ls "${PREFIX}"/bin/* "${PREFIX}/${TARGET}"/bin/* | egrep -v '.dll$' | egrep -v 'gccbug$' |
+#   while read file; do
+#     strip "$file"
+#   done
+
+  if [ -z "$MPCVERSION" ]; then
+    #create libstdc++-6.dll for gcc 4.4.x
+    createSTDCPPShared
+  fi
+
+  if [ $CROSS4WIN -eq 0 ]; then
+
+    #fix the float.h issue
+    cd $WM_THIRD_PARTY_DIR
+    ./fixSystemMingw force
+
+  else #if [ $CROSS4WIN -eq 1 ]; then
+
+    cd ${PREFIX}/bin
+    for afile in windres.exe dlltool.exe; do
+      ln -s $afile ${TARGET}-$afile
+    done
+
+  fi
+
+  echo "Installation complete!"
+}
+
+
+#
+# Main part of the script
+#
+
+get_em_all
+
+do_links_GM
+
+configure_binutils
+build_binutils
+install_binutils
+
+#create normal cross-compilation
+if [ $CROSS4WIN -eq 0 ]; then
+
+  case $WM_COMPILER in
+  mingw32)
+    setup_mingw32_headersNlinks
+
+    configure_gcc
+    build_gcc
+    install_gcc
+    ;;
+
+  mingw-w32 | mingw-w64)
+    setup_mingw_w64_headersNlinks
+
+    configure_gcc
+    build_gcc_core
+    install_gcc_core
+
+    configure_mingw_w64crt
+    build_mingw_w64crt
+    install_mingw_w64crt
+
+    build_gcc
+    install_gcc
+    ;;
+  esac
+
+else #cross-compile native compiler for Windows
+
+  case $WM_COMPILER in
+  mingw32)
+    setup_mingw32_headersNlinks_win
+
+    configure_gcc
+    build_gcc
+    install_gcc
+    ;;
+
+  mingw-w32 | mingw-w64)
+    setup_mingw_w64_headersNlinks_win
+    setup_mingw_w64_headersNlinks
+
+    configure_gcc_win
+    build_gcc
+    install_gcc
+
+    copy_mingw_w64_crt
+    ;;
+  esac
+
+fi
+
+final_tweaks
+
+#
+# End
+#

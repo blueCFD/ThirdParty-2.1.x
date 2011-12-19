@@ -65,11 +65,17 @@ downloadFile()
     file="$1"
     url="$2"
 
-    if [ ! -e download/$file ]
+    if [ ! -e download/$file -a ! -e download/${file}.partial ]
     then
         mkdir -p download
         echo "downloading $tarFile from $url"
-        ( cd download && wget --no-check-certificate $url -O $file )
+        ( cd download && wget --no-check-certificate $url -O ${file}.partial && \
+          mv ${file}.partial ${file} )
+    elif [ -e download/${file}.partial ]
+    then
+        echo "Verifying/continuing download of $tarFile from $url ..."
+        ( cd download && wget -c --no-check-certificate $url -O ${file}.partial && \
+          mv ${file}.partial ${file} )
     fi
 }
 

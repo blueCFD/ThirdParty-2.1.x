@@ -1,4 +1,5 @@
-# man gitignore for more information
+# git-ls-files --others --exclude-from=.git/info/exclude
+# Lines that start with '#' are comments.
 
 # editor and misc backup files - anywhere
 *~
@@ -20,6 +21,7 @@
 *.la
 *.so
 *.jar
+*.dll
 
 # derived files
 lex.yy.c
@@ -36,10 +38,34 @@ lnInclude
 # build folders - anywhere
 linux*Gcc*/
 linux*Icc*/
-linuxming*/
+linux*ming*/
 SiCortex*Gcc*/
 solaris*Gcc*/
 SunOS*Gcc*/
+build-*/
+
+# reinstate wmake/rules that might look like build folders
+!wmake/rules/*/
+
+#Third Party technology that is relevant to changes
+/paraview-*/
+/openmpi-*/
+/platforms/
+/gcc-*/
+/binutils-*/
+/download/
+/gmp-*/
+/libccmio-*/
+/mingw-*/
+/mpfr-*/
+/mpc-*/
+/pexports-*/
+/zlib-*/
+/scotch_*/
+/tecio*/
+
+# generated files in the main directory (e.g. ReleaseNotes-?.?.html)
+/*.html
 
 # source packages - anywhere
 *.tar.bz2
@@ -47,7 +73,7 @@ SunOS*Gcc*/
 *.tar
 *.tgz
 *.gtgz
-
+*.zip
 
 # ignore the persistent .build tag in the main directory
 /.build
@@ -55,25 +81,7 @@ SunOS*Gcc*/
 # ignore .timeStamp in the main directory
 /.timeStamp
 
-# ignore unpacked sources in the main directory (match pkg-ver)
-# this also matches symlinks
-/*[-_][0-9]*
-
-# ignore all sub-directories
-/*/
-
-# do not ignore these ones
-!/etc/
-
-# do not ignore the first level of these ones
-!/malloc/
-/malloc/*/
-!/malloc/fbsdmalloc/
-
-# ignore these extra symlinks
-libccmio
-
-# track this patched version directly - until metis gets dropped
-!/metis-5.0pre2/libmetis/metislib.h
+# ignore .tags in the main directory
+/.tags
 
 # end-of-file

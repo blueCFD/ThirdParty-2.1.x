@@ -1,0 +1,93 @@
+#! /bin/bash
+#------------------------------------------------------------------------------
+# License
+#     This file is part of blueCAPE's unofficial mingw patches for OpenFOAM.
+#     For more information about these patches, visit:
+#         http://www.bluecape.com.pt/blueCFD
+#
+#     OpenFOAM's official site: http://www.openfoam.com
+#
+#     OpenFOAM is free software: you can redistribute it and/or modify it
+#     under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#
+#     OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+#     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#     for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Script
+#     genPYTHONstubs
+#
+# Description
+#     This script generates the link library and prepares the include 
+#   files for Python.
+#
+#------------------------------------------------------------------------------
+
+if ! isMinGW; then
+  echo "Error: this script is meant to be used for MinGW compilers only!"
+  exit 1
+fi
+
+# run from third-party directory only
+cd ${0%/*} || exit 1
+wmakeCheckPwd "$WM_THIRD_PARTY_DIR" || {
+    echo "Error: Current directory is not \$WM_THIRD_PARTY_DIR"
+    echo "    The environment variables are inconsistent with the installation."
+    echo "    Check the OpenFOAM entries in your dot-files and source them."
+    exit 1
+}
+. etc/tools/ThirdPartyFunctions
+. etc/tools/makeExtraThirdPartyFunctions
+
+if [ -z "$PYTHON_VERSION" ]; then
+    # get PYTHON_*VERSION, PYTHON_ARCH_PATH
+    if settings=`$WM_PROJECT_DIR/bin/foamEtcFile config/python-win.sh`
+    then
+        . $settings
+    else
+        echo
+        echo "Error: no config/python-win.sh settings"
+        echo
+    fi
+fi
+
+#end of initializations -------------------------------------------
+
+create_gcccompatible_library()
+{
+  echo -e "\033[1m creating libpython.a \033[0m"
+  WM_DLLTOOL=`echo $WM_CC | sed s/gcc/dlltool/`
+  cd $PYTHON_ARCH_PATH/lib
+  pexports -o python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}.dll > libpython.def
+  $WM_DLLTOOL -d libpython.def -l libpython.a -D PYTHON${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}.DLL
+}
+
+
+#script start ------------------------------------------------------
+
+if [ ! -e "$PYTHON_ARCH_PATH/lib/python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}.dll" ]; then
+  ./get-em so python-win=default || {
+    echo "Unable to retrieve and unpack necessary files for Python."
+    exit 1
+  }
+fi
+
+if [ ! -e "$PYTHON_ARCH_PATH/lib/libpython.a" ]; then
+
+  #this function will take care of the logistics associated with using pexports.
+  build_pexports
+
+  echo -e "\033[1m Generating Python library interfaces for MinGW... \033[0m"
+
+  create_gcccompatible_library
+  #patch_python_includes
+  echo -e "\033[1m All done. \033[0m"
+else
+  echo -e "\033[1m Python stub is already built and ready to use. \033[0m"
+fi

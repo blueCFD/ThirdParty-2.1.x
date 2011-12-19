@@ -1,0 +1,80 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# License
+#     This file is part of blueCAPE's unofficial mingw patches for OpenFOAM.
+#     For more information about these patches, visit:
+#         http://www.bluecape.com.pt/blueCFD
+#
+#     OpenFOAM's official site: http://www.openfoam.com
+#
+#     OpenFOAM is free software: you can redistribute it and/or modify it
+#     under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#
+#     OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+#     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#     for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Script
+#     fixSystemMingw
+#
+# Description
+#     Tells the user to run a line in root mode.
+#
+#------------------------------------------------------------------------------
+
+if isMinGW; then
+
+  #must put "#include_next<float.h>" into gcc's float.h, so it will include mingw(-w64)'s float
+  GCC_FLOAT_H_LOC="`$WM_CC -print-libgcc-file-name | sed 's=/[a-z]*\.a$=='`/include/float.h"
+  GCC_FLOAT_H_KILLLOC="`$WM_CC -print-libgcc-file-name | sed 's=/[a-z]*\.a$=='`/../../../../mingw/include/float.h"
+
+  if [ -e "$GCC_FLOAT_H_LOC" -a -e "$GCC_FLOAT_H_KILLLOC" ]; then
+
+    FIXED=""
+    if [ x`grep -e "#include_next <float.h>" $GCC_FLOAT_H_LOC | wc -l` = "x0" ]; then
+
+      if [ "x$1" = "xforce" ]; then
+        echo "#include_next <float.h>" >> $GCC_FLOAT_H_LOC
+      else
+        echo -e "You must run the following command in super user mode (su - or sudo):\n"
+        echo -e 'echo "#include_next <float.h>" >> '$GCC_FLOAT_H_LOC "\n"
+      fi
+      
+      FIXED="Y"
+    fi
+    
+    if [ x`grep -e "#include_next\ *<float.h>" $GCC_FLOAT_H_KILLLOC | wc -l` = "x1" ]; then
+
+      if [ "x$1" = "xforce" ]; then
+        mv ${GCC_FLOAT_H_KILLLOC} ${GCC_FLOAT_H_KILLLOC}.old
+        grep -v "#include_next\ *<float.h>" ${GCC_FLOAT_H_KILLLOC}.old > ${GCC_FLOAT_H_KILLLOC}
+      else
+        echo -e "You must run the following commands in super user mode (su - or sudo):\n"
+        echo -e "mv ${GCC_FLOAT_H_KILLLOC} ${GCC_FLOAT_H_KILLLOC}.old\n"
+        echo -e "grep -v \"#include_next <float.h>\" ${GCC_FLOAT_H_KILLLOC}.old > ${GCC_FLOAT_H_KILLLOC}"
+      fi
+
+      FIXED="Y"
+    fi
+
+    if [ "x$FIXED" = "x" ]; then
+      echo -e "Your mingw cross-compiler is already fixed!\n"
+    fi
+
+  else
+
+      echo -e "The file \"$GCC_FLOAT_H_LOC\" doesn't exist.\n"
+
+  fi
+
+else
+
+  echo -e "Your current compiler chosen for building OpenFOAM isn't MinGW.\n"
+
+fi

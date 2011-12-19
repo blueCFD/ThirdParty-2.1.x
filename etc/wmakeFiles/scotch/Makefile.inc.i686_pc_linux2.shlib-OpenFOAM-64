@@ -9,9 +9,9 @@ CAT		= cat
 CCS		= gcc
 CCP		= mpicc
 CCD		= mpicc
-CFLAGS		= -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -Drestrict=__restrict
+CFLAGS		= -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -Drestrict=__restrict -I$(MPI_ARCH_PATH)/include
 CLIBFLAGS	= -fPIC
-LDFLAGS		= -lz -lm -lrt
+LDFLAGS		= -L$(MPI_ARCH_PATH)/lib -lz -lm -lrt
 CP		= cp
 LEX		= flex -Pscotchyy -olex.yy.c
 LN		= ln

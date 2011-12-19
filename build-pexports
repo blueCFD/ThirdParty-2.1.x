@@ -1,0 +1,236 @@
+#! /bin/sh
+#------------------------------------------------------------------------------
+# License
+#     This file is part of blueCAPE's unofficial mingw patches for OpenFOAM.
+#     For more information about these patches, visit:
+#         http://www.bluecape.com.pt/blueCFD
+#
+#     OpenFOAM's official site: http://www.openfoam.com
+#
+#     OpenFOAM is free software: you can redistribute it and/or modify it
+#     under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#
+#     OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+#     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#     for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Script
+#     build-pexports
+#
+# Description
+#     Build script for building pexports. pexports can help extracting 
+#   definition files ".def" from  pre-built DLLs. Main use in this package is 
+#   usually for retrieving definitions from MPI libraries.
+#
+#------------------------------------------------------------------------------
+# run from third-party directory only
+cd ${0%/*} || exit 1
+wmakeCheckPwd "$WM_THIRD_PARTY_DIR" || {
+  echo "Error: Current directory is not \$WM_THIRD_PARTY_DIR"
+  echo "    The environment variables are inconsistent with the installation."
+  echo "    Check the OpenFOAM entries in your dot-files and source them."
+  exit 1
+}
+. etc/tools/ThirdPartyFunctions
+. etc/tools/makeExtraThirdPartyFunctions
+#------------------------------------------------------------------------------
+
+#-----------------------------------------------------
+#
+# BEGIN USER SETTINGS
+#
+# You need to review and adjust the macros that follow
+#
+#-----------------------------------------------------
+
+#pexports version
+PEXPORTSVERSION="pexports-0.44-1"
+
+#LOG FOLDER
+LOG_FOLDER="$WM_THIRD_PARTY_DIR/../buildLogs"
+
+#-----------------------------------------------------
+#
+# END USER SETTINGS
+#
+# The remainder of the script should not neet any edits
+#
+#-----------------------------------------------------
+
+
+# What flavor of GCC cross-compiler are we building?
+case $WM_COMPILER in
+*mingw*)
+  echo "This compiler $WM_COMPILER option is currently supported for building pexports."
+  ;;
+*)
+  echo "Error: this compiler $WM_COMPILER option is not supported for building pexports."
+  exit 1
+  ;;
+esac
+
+#WM_COMPILER_DIR <- this is the prefix for all builds made here!
+#buildBASE <- this is where the things are going to be built
+#$buildBASE/$---VERSION <- this is where each package is going to be built
+#$WM_THIRD_PARTY_DIR/$---VERSION <- this is where each source folder will be
+
+PEXPORTS_HOME="$WM_THIRD_PARTY_DIR/$PEXPORTSVERSION"
+
+PREFIX="$WM_THIRD_PARTY_DIR/platforms/$WM_ARCH$WM_COMPILER/$PEXPORTSVERSION"
+
+#make sure the log folder exists and expand its path
+if [ ! -d "$LOG_FOLDER" ]; then
+  mkdir -p $LOG_FOLDER
+fi
+LOG_FOLDER=`( cd "$LOG_FOLDER" && pwd )`
+
+PEXPORTS_BDIR="$PEXPORTS_HOME"
+
+PURGE=""
+
+if [ -d "$PREFIX" ]; then
+  echo "It seems that there is already an existing pexports installed."
+  echo "Do you wish to remove it and update it to the latest available version? (yes or no)"
+  read answer
+  case $answer in
+      yes | y | Y | Yes | YES)
+        rm -rf "$PREFIX"
+        PURGE="Y"
+        ;;
+      *)
+        echo "Installation aborted."
+        exit 1
+        ;;
+  esac
+fi
+
+#set architecture bits
+ABI=$WM_ARCH_OPTION
+
+
+#define files to download and respective URLS
+PEXPORTS_TARFILE="${PEXPORTSVERSION}-mingw32-src.tar.lzma"
+
+PEXPORTS_URL="http://downloads.sourceforge.net/project/mingw/MinGW/pexports/${PEXPORTSVERSION}/${PEXPORTS_TARFILE}?use_mirror=mesh"
+
+
+#-----------------------------------------------------
+#
+# Functions that do most of the work
+#
+#-----------------------------------------------------
+
+
+download_files()
+{
+  # Make sure wget is installed
+  if test "x`which wget`" = "x" ; then
+    echo "You need to install wget."
+    exit 1
+  fi
+
+  downloadFile $PEXPORTS_TARFILE $PEXPORTS_URL
+}
+
+
+purge_folder()
+{
+  if [ -d "$1" ]; then
+    rm -rf "$1"
+  fi
+}
+
+
+purge_homes()
+{
+  purge_folder "$PEXPORTS_HOME"
+}
+
+
+unpack_files()
+{
+  echo "Unpacking files..."
+
+  if [ "x$PURGE" != "x" ]; then
+    purge_homes
+  fi
+
+  unpackFile $PEXPORTS_TARFILE $PEXPORTS_HOME
+
+  (
+  cd $PEXPORTS_HOME
+  PEXPORTS_ARCHIVE2=`tar --lzma -tf "$DownloadRepository/$PEXPORTS_TARFILE" | grep -vi mingw`
+  tar --lzma -xf $PEXPORTS_ARCHIVE2
+  PEXPORTS_ARCHIVE3=`tar --lzma -tf "$DownloadRepository/$PEXPORTS_TARFILE" | grep -i mingw`
+  tar -xjf $PEXPORTS_ARCHIVE3
+  )
+  mv $PEXPORTS_HOME/pexports-0.44/* $PEXPORTS_HOME/
+  rmdir $PEXPORTS_HOME/pexports-0.44
+}
+
+
+patch_pexports()
+{
+  echo "Patching pexports"
+  cd $PEXPORTS_HOME
+  patch -p2 < mingwPORT/mingwPORT.patch
+#the other patch doesn't work all that well...
+echo '28a29
+> #if defined(__MINGW32__) || defined(_MSC_VER)
+29a31,33
+> #else
+> typedef unsigned long long ULONGLONG;
+> #endif
+' | patch pexports.h
+}
+
+
+build_pexports()
+{
+  cd "$PEXPORTS_BDIR"
+  echo "Building pexports"
+  #CC="$TARGET-gcc" 
+  make clean > $LOG_FOLDER/pexports_make.log 2>&1
+  make -j $WM_NCOMPPROCS CFLAGS="-m32 -O2 -s -mms-bitfields" >> $LOG_FOLDER/pexports_make.log 2>&1
+  if test $? -ne 0; then
+    echo "make of pexports failed - log available: $LOG_FOLDER/pexports_make.log"
+    echo "Caution: gcc-multilib is required under an x86_64 Linux!"
+    exit 1
+  fi
+  cd "$BUILDDIR"
+}
+
+
+install_pexports()
+{
+  echo "Installing pexports"
+  mkdir -p $PREFIX/bin
+  mv -f $PEXPORTS_BDIR/pexports.exe $PREFIX/bin/pexports
+  if test $? -ne 0; then
+          echo "install of pexports failed - moving the pexports file didn't go correctly"
+          exit 1
+  fi
+}
+
+
+#
+# Main part of the script
+#
+
+download_files
+
+unpack_files
+
+patch_pexports
+build_pexports
+install_pexports
+
+#
+# End
+#

@@ -41,6 +41,17 @@ wmakeCheckPwd "$WM_THIRD_PARTY_DIR" || {
 #------------------------------------------------------------------------------
 
 
+if isMinGW; then
+  ./AllwcleanZLib
+  ./AllwcleanRegEx
+  wclean libso stack_trace
+fi
+
+if [ -d "libccmio-2.6.1" ]
+then
+  wclean libso libccmio-2.6.1
+fi
+
 # clean various packages via 'distclean'
 for i in openmpi-*
 do

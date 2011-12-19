@@ -1,0 +1,3 @@
+stack_trace_win.cc
+
+LIB = $(FOAM_LIBBIN)/libstack_trace

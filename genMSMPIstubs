@@ -1,0 +1,234 @@
+#! /bin/bash
+#------------------------------------------------------------------------------
+# License
+#     This file is part of blueCAPE's unofficial mingw patches for OpenFOAM.
+#     For more information about these patches, visit:
+#         http://www.bluecape.com.pt/blueCFD
+#
+#     OpenFOAM's official site: http://www.openfoam.com
+#
+#     OpenFOAM is free software: you can redistribute it and/or modify it
+#     under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#
+#     OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+#     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#     for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Script
+#     genMSMPIstubs
+#
+# Description
+#     This script generates the link library and prepares the include
+#   files for MSMPI, based on HPC Pack 2008 R2 SP3 MS-MPI Redistributable Package:
+#      http://www.microsoft.com/download/en/details.aspx?id=14737
+#   It will need 7zip and wget installed and visible from the shell, since it
+#   will download the installation packages that have the necessary files.
+#
+#------------------------------------------------------------------------------
+
+#set up variables
+INSTPACK_URL="http://download.microsoft.com/download/3/8/D/38D18861-67DE-4E66-92C7-6819D8B07210"
+INSTPACK_X86="mpi_x86.msi"
+INSTPACK_X86_64="mpi_x64.msi"
+# INSTPACK_URL="http://download.microsoft.com/download/7/6/8/768DA318-6642-40F5-AA76-D8AD75A8E498"
+# INSTPACK_X86="sdk_x86.msi"
+# INSTPACK_X86_64="sdk_x64.msi"
+if [ "x$WM_ARCH_OPTION" = "x64" ]; then
+  INSTPACK_FILE=$INSTPACK_X86_64
+  DLLVERNUM="64"
+else
+  INSTPACK_FILE=$INSTPACK_X86
+  DLLVERNUM=""
+fi
+
+if ! isMinGW; then
+  echo "Error: this script is meant to be used for MinGW compilers only!"
+  exit 1
+fi
+
+# run from third-party directory only
+cd ${0%/*} || exit 1
+wmakeCheckPwd "$WM_THIRD_PARTY_DIR" || {
+    echo "Error: Current directory is not \$WM_THIRD_PARTY_DIR"
+    echo "    The environment variables are inconsistent with the installation."
+    echo "    Check the OpenFOAM entries in your dot-files and source them."
+    exit 1
+}
+. etc/tools/ThirdPartyFunctions
+. etc/tools/makeExtraThirdPartyFunctions
+
+
+#end of initializations -------------------------------------------
+
+
+download_files()
+{
+  # Make sure wget is installed
+  if test "x`which wget`" = "x" ; then
+    echo "You need to install wget."
+    exit 1
+  fi
+
+  downloadFile $INSTPACK_FILE $INSTPACK_URL/$INSTPACK_FILE
+}
+
+
+unpack_files()
+{
+  echo "Unpacking files..."
+
+  rm $SRCDIR/*
+  {
+    7z x $DownloadRepository/$INSTPACK_FILE -o$SRCDIR/ product.cab > /dev/null && \
+    cd $SRCDIR && \
+    7z x product.cab mpi*.h msmpi${DLLVERNUM}.dll > /dev/null
+    [ -z "${DLLVERNUM}" ] && 7z x product.cab MSMPI_32 > /dev/null
+  } || {
+    7z x $DownloadRepository/$INSTPACK_FILE -o$SRCDIR/ mpi*.h msmpi${DLLVERNUM}.dll > /dev/null
+    [ -z "${DLLVERNUM}" ] && 7z x $DownloadRepository/$INSTPACK_FILE -o$SRCDIR/ MSMPI_32 > /dev/null
+  }
+
+  [ -n "${DLLVERNUM}" ] && mv msmpi${DLLVERNUM}.dll msmpi.dll
+  [ -z "${DLLVERNUM}" ] && mv MSMPI_32 libmpi.a
+
+}
+
+
+function copy_and_link_msmpi
+{
+  cd "$BUILDDIR"
+
+  echo -e "\033[1m Purging installed msmpi \033[0m"
+  rm -rf *
+
+  echo -e "\033[1m copying necessary files \033[0m"
+  createBinIncludeLib .
+  cp $SRCDIR/*.dll lib/
+  cp $SRCDIR/*.h include/
+}
+
+function create_gcccompatible_library
+{
+  echo -e "\033[1m creating libmpi.a \033[0m"
+  if [ -n "${DLLVERNUM}" ]; then
+    cd lib
+    pexports -o msmpi.dll > libmpi.def
+    WM_DLLTOOL=`echo $WM_CC | sed s/gcc/dlltool/`
+    $WM_DLLTOOL -d libmpi.def -l libmpi.a -D msmpi.dll
+  else
+    cp $SRCDIR/*.a lib/
+  fi
+}
+
+
+function patch_mpi_includes
+{
+
+  echo -e "\033[1m patching mpi.h \033[0m"
+  cd $BUILDDIR/include
+  cat mpi.h | sed -e 's=.$==' > mpi.h_tmp
+  mv -f mpi.h_tmp mpi.h
+
+  if [ "$WM_ARCH_OPTION" = "64" ]; then
+    patch -p0 --binary < $WM_THIRD_PARTY_DIR/etc/patches/patch_msmpi_mpi_h
+  fi
+
+echo '--- mpi.h_orig  2011-01-18 15:11:38.284485101 +0000
++++ mpi.h 2011-01-18 15:11:43.739068567 +0000
+@@ -16,6 +16,7 @@
+ #define MSMPI_VER 0x100
+ #endif
+ 
++#include <stdint.h>
+ 
+ /*---------------------------------------------------------------------------*/
+ /* SAL ANNOTATIONS                                                           */
+@@ -5319,6 +5319,15 @@
+ /* Chapter 15: Depricated Functions                                          */
+ /*---------------------------------------------------------------------------*/
+ 
++#if defined( __GNUC__ ) && defined( __GNUC_MINOR__ )
++  #if (__GNUC__ == 4) && (__GNUC_MINOR__ == 4)
++    //this will override an issue that is already fixed in gcc 4.5.x and above
++    //namely a problem with "deprecated" not allowing messages in 4.4.x and below.
++    //#define MSMPI_NO_DEPRECATE_20
++    #define deprecated(x) deprecated
++  #endif
++#endif
++
+ #ifdef MSMPI_NO_DEPRECATE_20
+ #define MSMPI_DEPRECATE_20( x )
+ #else
+' | patch -p0
+
+  if [ -n "${DLLVERNUM}" ]; then
+    cat mpi.h | sed -e 's=\#define MPIAPI __stdcall=\#define MPIAPI=' > mpi.h_tmp
+    mv -f mpi.h_tmp mpi.h
+  fi
+}
+
+
+function cleanup
+{
+  if [ -n "$BUILDDIR" -a -e "$BUILDDIR" ]; then
+    rm -rf "$BUILDDIR"
+  fi
+}
+
+#script start ------------------------------------------------------
+
+BUILDDIR="$MPI_ARCH_PATH"
+SRCDIR="$MPI_HOME/source"
+
+if [ $# -eq 1 -a "$1" = "clean" ]; then
+
+  echo -e "\033[1m Cleaning up MSMPI stub... \033[0m"
+  cleanup
+
+else
+
+  if test -z "x`which 7z`" ; then
+    echo "Please install 7zip. In Ubuntu, the package name is p7zip-full."
+    echo "If 7zip isn't available for your Linux distribution, please go to www.7zip.org to download the generic version."
+    exit 1
+  fi
+
+  mkdir -p "$BUILDDIR"
+  if [ ! -d "$SRCDIR" ]; then mkdir -p "$SRCDIR"; fi
+
+  if [ -d "$SRCDIR" ]; then
+
+    if [ ! -e "$BUILDDIR/lib/libmpi.a" ]; then
+
+      echo -e "\033[1m Downloading necessary MSMPI installation files...\033[0m"
+      download_files
+
+      echo -e "\033[1m Unpacking necessary MSMPI installation files...\033[0m"
+      unpack_files
+
+      #this function will take care of the logistics associated with using pexports.
+      build_pexports
+
+      echo -e "\033[1m Generating MSMPI stub... \033[0m"
+
+      copy_and_link_msmpi
+      create_gcccompatible_library
+      patch_mpi_includes
+      echo -e "\033[1m All done. \033[0m"
+    else
+      echo -e "\033[1m MSMPI stub is already built and ready to use. \033[0m"
+    fi
+
+  else
+    echo -e "\033[1m Failed to complete, due to lack of folder $SRCDIR \033[0m"
+  fi
+
+  cd $WM_THIRD_PARTY_DIR
+
+fi
