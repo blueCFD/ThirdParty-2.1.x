@@ -41,6 +41,38 @@ wmakeCheckPwd "$WM_THIRD_PARTY_DIR" || {
 . etc/tools/makeExtraThirdPartyFunctions
 #------------------------------------------------------------------------------
 
+usage() {
+    exec 1>&2
+    while [ "$#" -ge 1 ]; do echo "$1"; shift; done
+    cat<<USAGE
+
+usage: ${0##*/} [cross4win]
+
+* Builds pexports to run in Linux/Cygwin.
+* Option "cross4win" will compile the Windows version of the binary and embed it onto the respective "mingw_win" version of Gcc.
+
+USAGE
+    exit 1
+}
+
+CROSS4WIN=0
+# parse options
+while [ "$#" -gt 0 ]
+do
+    case "$1" in
+    -h | -help)
+        usage
+        ;;
+    cross4win)
+        CROSS4WIN=1
+        shift
+        ;;
+    *)
+        usage "unknown option/argument: '$*'"
+        ;;
+    esac
+done
+
 #-----------------------------------------------------
 #
 # BEGIN USER SETTINGS
@@ -82,7 +114,16 @@ esac
 
 PEXPORTS_HOME="$WM_THIRD_PARTY_DIR/$PEXPORTSVERSION"
 
-PREFIX="$WM_THIRD_PARTY_DIR/platforms/$WM_ARCH$WM_COMPILER/$PEXPORTSVERSION"
+if [ $CROSS4WIN -eq 0 ]; then
+  PREFIX="$WM_THIRD_PARTY_DIR/platforms/$WM_ARCH$WM_COMPILER/$PEXPORTSVERSION"
+else
+  PREFIX="${WM_COMPILER_DIR}_win"
+  if [ ! -d "$PREFIX" ]; then
+    echo "Error: the mingw compiler for Windows has not yet been cross-compiled."
+    echo "Please run 'makeMinGWGcc cross4win' first."
+    exit 1
+  fi
+fi
 
 #make sure the log folder exists and expand its path
 if [ ! -d "$LOG_FOLDER" ]; then
@@ -94,7 +135,7 @@ PEXPORTS_BDIR="$PEXPORTS_HOME"
 
 PURGE=""
 
-if [ -d "$PREFIX" ]; then
+if [ -d "$PREFIX" -a $CROSS4WIN -eq 0 ]; then
   echo "It seems that there is already an existing pexports installed."
   echo "Do you wish to remove it and update it to the latest available version? (yes or no)"
   read answer
@@ -195,9 +236,12 @@ build_pexports()
 {
   cd "$PEXPORTS_BDIR"
   echo "Building pexports"
-  #CC="$TARGET-gcc" 
   make clean > $LOG_FOLDER/pexports_make.log 2>&1
-  make -j $WM_NCOMPPROCS CFLAGS="-m32 -O2 -s -mms-bitfields" >> $LOG_FOLDER/pexports_make.log 2>&1
+  if [ $CROSS4WIN -eq 1 ]; then
+    make -j $WM_NCOMPPROCS CC="$WM_CC" CFLAGS="-m32 -O2 -s -mms-bitfields" >> $LOG_FOLDER/pexports_make.log 2>&1
+  else
+    make -j $WM_NCOMPPROCS CFLAGS="-m32 -O2 -s -mms-bitfields" >> $LOG_FOLDER/pexports_make.log 2>&1
+  fi
   if test $? -ne 0; then
     echo "make of pexports failed - log available: $LOG_FOLDER/pexports_make.log"
     echo "Caution: gcc-multilib is required under an x86_64 Linux!"
@@ -211,7 +255,12 @@ install_pexports()
 {
   echo "Installing pexports"
   mkdir -p $PREFIX/bin
-  mv -f $PEXPORTS_BDIR/pexports.exe $PREFIX/bin/pexports
+  if [ $CROSS4WIN -eq 0 ]; then
+    mv -f $PEXPORTS_BDIR/pexports.exe $PREFIX/bin/pexports
+  else
+    mv -f $PEXPORTS_BDIR/pexports.exe $PREFIX/bin/pexports.exe
+    cp $PEXPORTS_BDIR/README $PREFIX/share/pexports.readme
+  fi
   if test $? -ne 0; then
           echo "install of pexports failed - moving the pexports file didn't go correctly"
           exit 1
