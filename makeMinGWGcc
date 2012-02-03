@@ -50,7 +50,7 @@ usage() {
 usage: ${0##*/} [cross4win]
 
 * Builds compiler Gcc/G++ with MinGW capabilities to run in Linux/Cygwin.
-* Option "cross4win" will compile the version Windows version of the compiler.
+* Option "cross4win" will compile the Windows version of the compiler.
 
 USAGE
     exit 1
