@@ -158,7 +158,7 @@ ABI=$WM_ARCH_OPTION
 #define files to download and respective URLS
 PEXPORTS_TARFILE="${PEXPORTSVERSION}-mingw32-src.tar.lzma"
 
-PEXPORTS_URL="http://downloads.sourceforge.net/project/mingw/MinGW/pexports/${PEXPORTSVERSION}/${PEXPORTS_TARFILE}?use_mirror=mesh"
+PEXPORTS_URL="http://downloads.sourceforge.net/mingw/MinGW/Extension/pexports/${PEXPORTSVERSION}/${PEXPORTS_TARFILE}?use_mirror=mesh"
 
 
 #-----------------------------------------------------
@@ -238,7 +238,8 @@ build_pexports()
   echo "Building pexports"
   make clean > $LOG_FOLDER/pexports_make.log 2>&1
   if [ $CROSS4WIN -eq 1 ]; then
-    make -j $WM_NCOMPPROCS CC="$WM_CC" CFLAGS="-m32 -O2 -s -mms-bitfields" >> $LOG_FOLDER/pexports_make.log 2>&1
+    ## -m32 
+    make -j $WM_NCOMPPROCS CC="$WM_CC" CFLAGS="-O2 -s -mms-bitfields" >> $LOG_FOLDER/pexports_make.log 2>&1
   else
     make -j $WM_NCOMPPROCS CFLAGS="-m32 -O2 -s -mms-bitfields" >> $LOG_FOLDER/pexports_make.log 2>&1
   fi
