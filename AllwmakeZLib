@@ -59,3 +59,17 @@ fi
 
 #build the library
 wmake libso $ZLIBNAMENVERSION
+
+if isMinGW; then
+  for folder in "${WM_COMPILER_DIR}" "${WM_COMPILER_DIR}_win"; do
+    if [ -d "${folder}" ]; then
+      cp $ZLIBNAMENVERSION/zlib.h $ZLIBNAMENVERSION/zconf.h ${folder}/mingw/include/
+      cp $FOAM_LIBBIN/libz.a $FOAM_LIBBIN/libz.def ${folder}/mingw/lib/
+      cp $FOAM_LIBBIN/libz.dll ${folder}/bin/
+      [ ! -d ${folder}/mingw/share/zlib ] && mkdir -p ${folder}/mingw/share/zlib && \
+        for file in README FAQ ChangeLog zlib.3.pdf; do
+          cp $ZLIBNAMENVERSION/$file ${folder}/mingw/share/zlib/
+        done
+    fi
+  done
+fi

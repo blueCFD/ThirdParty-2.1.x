@@ -112,8 +112,13 @@ install_regex()
 copyLibsToFoam()
 {
   if [ -d "$REGEXTARGET/lib" ]; then
-    cp -n $REGEXTARGET/lib/libregex.dll.a $FOAM_LIBBIN/libregex.a
-    cp -n $REGEXTARGET/bin/* $FOAM_LIBBIN/
+    for folder in "${WM_COMPILER_DIR}" "${WM_COMPILER_DIR}_win"; do
+      if [ -d "${folder}" ]; then
+        cp -r $REGEXTARGET/* ${folder}/mingw/
+        cp $REGEXTARGET/lib/libregex.dll.a ${folder}/mingw/lib/libregex.a
+        cp $REGEXTARGET/bin/* ${folder}/bin/
+      fi
+    done
   fi
 }
 
