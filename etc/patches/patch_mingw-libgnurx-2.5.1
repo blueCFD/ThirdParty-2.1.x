@@ -1,8 +1,7 @@
-diff --git a/lib/regcomp.c b/lib/regcomp.c
-index 86195af..a69858e 100644
---- a/lib/regcomp.c
-+++ b/lib/regcomp.c
-@@ -2561,7 +2561,11 @@ parse_dup_op (bin_tree_t *elem, re_string_t *regexp, re_dfa_t *dfa,
+diff -Nur mingw-libgnurx-2.5.1-orig/regcomp.c mingw-libgnurx-2.5.1/regcomp.c
+--- mingw-libgnurx-2.5.1-orig/regcomp.c 2007-04-27 20:29:49.000000000 +0100
++++ mingw-libgnurx-2.5.1/regcomp.c  2009-10-02 11:07:32.000000000 +0100
+@@ -2510,7 +2510,11 @@
      old_tree = NULL;
  
    if (elem->token.type == SUBEXP)
@@ -12,25 +11,24 @@ index 86195af..a69858e 100644
      postorder (elem, mark_opt_subexp, (void *) (long) elem->token.opr.idx);
 +#endif
  
-   tree = create_tree (dfa, elem, NULL,
- 		      (end == REG_MISSING ? OP_DUP_ASTERISK : OP_ALT));
-@@ -3773,7 +3777,11 @@ create_token_tree (re_dfa_t *dfa, bin_tree_t *left, bin_tree_t *right,
+   tree = create_tree (dfa, elem, NULL, (end == -1 ? OP_DUP_ASTERISK : OP_ALT));
+   if (BE (tree == NULL, 0))
+@@ -3722,7 +3726,11 @@
  static reg_errcode_t
  mark_opt_subexp (void *extra, bin_tree_t *node)
  {
 +#ifdef _WIN64
 +  int idx = (int) (long long) extra;
 +#else
-   Idx idx = (Idx) (long) extra;
+   int idx = (int) (long) extra;
 +#endif
    if (node->token.type == SUBEXP && node->token.opr.idx == idx)
      node->token.opt_subexp = 1;
  
-diff --git a/lib/regex.c b/lib/regex.c
-index e457a78..1e9cee9 100644
---- a/lib/regex.c
-+++ b/lib/regex.c
-@@ -54,7 +54,7 @@
+diff -Nur mingw-libgnurx-2.5.1-orig/regex.c mingw-libgnurx-2.5.1/regex.c
+--- mingw-libgnurx-2.5.1-orig/regex.c   2007-04-27 20:29:49.000000000 +0100
++++ mingw-libgnurx-2.5.1/regex.c    2009-10-02 11:12:59.000000000 +0100
+@@ -57,7 +57,7 @@
     #undefs RE_DUP_MAX and sets it to the right value.  */
  #include <limits.h>
  
@@ -39,3 +37,22 @@ index e457a78..1e9cee9 100644
  #include "regex_internal.h"
  
  #include "regex_internal.c"
+diff -Nur mingw-libgnurx-2.5.1-orig/regex_internal.h mingw-libgnurx-2.5.1/regex_internal.h
+--- mingw-libgnurx-2.5.1-orig/regex_internal.h  2007-04-27 20:29:51.000000000 +0100
++++ mingw-libgnurx-2.5.1/regex_internal.h   2009-10-02 11:08:54.000000000 +0100
+@@ -420,6 +420,7 @@
+ #define re_string_skip_bytes(pstr,idx) ((pstr)->cur_idx += (idx))
+ #define re_string_set_index(pstr,idx) ((pstr)->cur_idx = (idx))
+ 
++#ifndef alloca
+ #ifdef __GNUC__
+ # define alloca(size)   __builtin_alloca (size)
+ # define HAVE_ALLOCA 1
+@@ -430,6 +431,7 @@
+ #else
+ # error No alloca()
+ #endif
++#endif
+ 
+ #ifndef _LIBC
+ # if HAVE_ALLOCA

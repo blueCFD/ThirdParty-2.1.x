@@ -46,9 +46,8 @@ fi
 
 #set script options
 REGEXNAMENVERSION=mingw-libgnurx-2.5.1
-REGEXFILE="regex-1.20090805-2-msys-1.0.13-src.tar.lzma"
-REGEXFILE_INT="regex-20090805.tar.xz"
-REGEXURL="http://downloads.sourceforge.net/mingw/MSYS/Base/regex/regex-1.20090805-2/${REGEXFILE}?use_mirror=mesh"
+REGEXFILE="mingw-libgnurx-2.5.1-src.tar.gz"
+REGEXURL="http://downloads.sourceforge.net/mingw/UserContributed/regex/mingw-regex-2.5.1/${REGEXFILE}?use_mirror=mesh"
 REGEXBUILD="$WM_THIRD_PARTY_DIR/build/$WM_ARCH$WM_COMPILER/$REGEXNAMENVERSION"
 REGEXTARGET="$WM_THIRD_PARTY_DIR/platforms/$WM_ARCH$WM_COMPILER/$REGEXNAMENVERSION"
 TARGET=$(${WM_CC} -dumpmachine)
@@ -71,8 +70,9 @@ configure_regex()
 
   # What build should we make
   definedBUILDmachine
-  "$WM_THIRD_PARTY_DIR/$REGEXNAMENVERSION/configure" --prefix=$REGEXTARGET --build=$BUILD \
-    --host=$TARGET > configure.log 2>&1
+
+  "$WM_THIRD_PARTY_DIR/$REGEXNAMENVERSION/configure" --prefix=$REGEXTARGET --build=$TARGET \
+    --host=$BUILD > configure.log 2>&1
     #--with-build-sysroot=$PREFIX 
     #--with-sysroot=$GCCSYSROOT \
   if test $? -ne 0; then
@@ -88,7 +88,7 @@ build_regex()
   cd "$REGEXBUILD"
   echo "Building regex"
   # -fno-exceptions
-  make -j $WM_NCOMPPROCS CC="$WM_CC" LDFLAGS="-Wl,--enable-auto-import"  > make.log 2>&1
+  make -j $WM_NCOMPPROCS CC="$WM_CC" > make.log 2>&1
   if test $? -ne 0; then
     echo "Make of regex failed - log available: $REGEXBUILD/make.log"
     exit 1
@@ -115,7 +115,7 @@ copyLibsToFoam()
     for folder in "${WM_COMPILER_DIR}" "${WM_COMPILER_DIR}_win"; do
       if [ -d "${folder}" ]; then
         cp -r $REGEXTARGET/* ${folder}/mingw/
-        cp $REGEXTARGET/lib/libregex.dll.a ${folder}/mingw/lib/libregex.a
+        #cp $REGEXTARGET/lib/* ${folder}/mingw/lib/
         cp $REGEXTARGET/bin/* ${folder}/bin/
       fi
     done
@@ -132,13 +132,10 @@ if [ "$ALREADYUNPACKED" != "Yes" ]; then
 
   #unpack the files
   unpackFile $REGEXFILE
-  rm msys-build-regex msys-regex.RELEASE_NOTES
-  mv $REGEXFILE_INT ${DownloadRepository}/
-  unpackFile $REGEXFILE_INT
 
   #move folder
-  moveUnpackedFolder $REGEXFILE_INT $REGEXNAMENVERSION
-  
+  moveUnpackedFolder $REGEXFILE $REGEXNAMENVERSION
+
   #apply patches
   apply_regex_w64_patch
 fi
