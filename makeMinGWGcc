@@ -186,7 +186,7 @@ MINGW_W64_BDIR="$buildBASE/mingw-w64-crt-$MINGW_W64_VERSION"
 
 
 # Make sure these are initialized as we want them
-GCC_LANGS="c,c++"
+GCC_LANGS="c,c++,fortran"
 
 
 
