@@ -1,0 +1,84 @@
+#! /bin/bash
+#------------------------------------------------------------------------------
+# License
+#     This file is part of blueCAPE's unofficial mingw patches for OpenFOAM.
+#     For more information about these patches, visit:
+#         http://www.bluecape.com.pt/blueCFD
+#
+#     OpenFOAM's official site: http://www.openfoam.com
+#
+#     OpenFOAM is free software: you can redistribute it and/or modify it
+#     under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#
+#     OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+#     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#     for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Script
+#     genParaViewstubs
+#
+# Description
+#     This script generates the link libraries for Gcc on ParaView DLLs.
+#
+#------------------------------------------------------------------------------
+
+if ! isMinGW; then
+  echo "Error: this script is meant to be used for MinGW compilers only!"
+  exit 1
+fi
+
+# run from third-party directory only
+cd ${0%/*} || exit 1
+wmakeCheckPwd "$WM_THIRD_PARTY_DIR" || {
+    echo "Error: Current directory is not \$WM_THIRD_PARTY_DIR"
+    echo "    The environment variables are inconsistent with the installation."
+    echo "    Check the OpenFOAM entries in your dot-files and source them."
+    exit 1
+}
+. etc/tools/ThirdPartyFunctions
+. etc/tools/makeExtraThirdPartyFunctions
+
+#end of initializations -------------------------------------------
+
+create_gcccompatible_libraries()
+{
+  WM_DLLTOOL=`echo $WM_CC | sed s/gcc/dlltool/`
+  for library in $ParaView_DIR/bin/*.dll; do
+    filenameext=${library##*/}
+    filename=${filenameext%%.*}
+    echo -e "\033[1m creating stub for $library in '.a' format \033[0m"
+    cd "$ParaView_DIR/lib/paraview-$ParaView_MAJOR"
+    pexports -o "$library" > ${filename}.def
+    $WM_DLLTOOL -d ${filename}.def -l lib${filename}.a -D ${filename}.dll
+  done
+}
+
+
+#script start ------------------------------------------------------
+
+#if [ ! -e "$ParaView_DIR/lib/paraview-$ParaView_MAJOR/vtkCommon.lib" ]; then
+#  ./get-em so paraview-windev=default || {
+#    echo "Unable to retrieve and unpack necessary files for ParaView."
+#    exit 1
+#  }
+#fi
+
+if [ ! -e "$ParaView_DIR/lib/paraview-$ParaView_MAJOR/vtkCommon.a" ]; then
+
+  #this function will take care of the logistics associated with using pexports.
+  build_pexports
+
+  echo -e "\033[1m Generating ParaView library interfaces for MinGW... \033[0m"
+
+  create_gcccompatible_libraries
+
+  echo -e "\033[1m All done. \033[0m"
+else
+  echo -e "\033[1m ParaView stubs are already built and ready to use. \033[0m"
+fi
