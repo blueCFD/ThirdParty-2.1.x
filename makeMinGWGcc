@@ -258,6 +258,23 @@ get_em_all()
 }
 
 
+do_unlinks_GM()
+{
+  #hook up gmp, mpfr and mpc to gcc's folder
+  if [ -L "$GCC_HOME/gmp" ]; then
+    unlink $GCC_HOME/gmp
+  fi
+  if [ -L "$GCC_HOME/mpfr" ]; then
+    unlink $GCC_HOME/mpfr
+  fi
+  if [ -n "$MPCVERSION" ]; then
+    if [ -L "$GCC_HOME/mpc" ]; then
+      unlink $GCC_HOME/mpc
+    fi
+  fi
+}
+
+
 do_links_GM()
 {
   #hook up gmp, mpfr and mpc to gcc's folder
@@ -628,6 +645,7 @@ final_tweaks()
 
 get_em_all
 
+do_unlinks_GM
 do_links_GM
 
 configure_binutils

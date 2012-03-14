@@ -67,11 +67,11 @@ mingw32 | mingw-w32 | mingw-w64 | i686-w64-mingw32 | x86_64-w64-mingw32)
     mpc_version="mpc-0.8.2"
     binutils_version="binutils-2.21"
 
-#    gcc_version=gcc-4.6.1
-#    gmp_version=gmp-5.0.1
-#    mpfr_version=mpfr-2.4.2
-#    mpc_version=mpc-0.8.2
-#    binutils_version="binutils-2.21"
+#    gcc_version=gcc-4.6.3
+#    gmp_version=gmp-5.0.2
+#    mpfr_version=mpfr-3.0.1
+#    mpc_version=mpc-0.9
+#    binutils_version="binutils-2.22"
 
     #MinGW versions
     mingw32rt_version="mingwrt-3.20"
