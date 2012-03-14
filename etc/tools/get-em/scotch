@@ -56,13 +56,13 @@ GE_showDesc()
 #
 GE_update()
 {
-  wget "$1" -O $testFile > /dev/null 2>&1
-  grep -e "https.*scotch.*${appFileExt}" $testFile | grep -v "esmumps" | \
+  wget --no-check-certificate "$1" -O $testFile > /dev/null 2>&1
+  grep -e "\"/.*scotch.*${appFileExt}" $testFile | grep -v "esmumps" | \
     sed -e 's=.*>\(scotch_.*\)\.'${appFileExt}'<.*=\1=' -e 's/_/=/' | \
     sort -u > ${versionCacheFile}
 
-  grep -e "https.*scotch.*${appFileExt}" $testFile | grep -v "esmumps" | \
-    sed -e 's=.*"\(https.*.'${appFileExt}'\)".*=\1=' | \
+  grep -e "\"/.*scotch.*${appFileExt}" $testFile | grep -v "esmumps" | \
+    sed -e 's=.*"\(/.*.'${appFileExt}'\)".*=https://gforge.inria.fr\1=' | \
     sort -u > ${versionCacheFile}_urls
   rm $testFile
 }

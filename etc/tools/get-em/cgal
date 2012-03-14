@@ -44,13 +44,13 @@ GE_showDesc()
 #
 GE_update()
 {
-  wget "$1" -O $testFile > /dev/null 2>&1
-  grep -e "https.*CGAL-[0-9.]*${appFileExt}" $testFile | \
+  wget --no-check-certificate "$1" -O $testFile > /dev/null 2>&1
+  grep -e "\"/.*CGAL-[0-9.]*${appFileExt}" $testFile | \
     sed -e 's=.*>\(CGAL-.*\)\.'${appFileExt}'<.*=\1=' -e 's/-/=/' | \
     sort -u > ${versionCacheFile}
 
-  grep -e "https.*CGAL-[0-9.]*${appFileExt}" $testFile | \
-    sed -e 's=.*"\(https.*.'${appFileExt}'\)".*=\1=' | \
+  grep -e "\"/.*CGAL-[0-9.]*${appFileExt}" $testFile | \
+    sed -e 's=.*"\(/.*.'${appFileExt}'\)".*=https://gforge.inria.fr\1=' | \
     sort -u > ${versionCacheFile}_urls
   rm $testFile
 }
