@@ -61,22 +61,22 @@ mingw32 | mingw-w32 | mingw-w64 | i686-w64-mingw32 | x86_64-w64-mingw32)
 #     mpfr_version="mpfr-2.4.2"
 #     binutils_version="binutils-2.21"
 
-    gcc_version="gcc-4.5.3"
-    gmp_version="gmp-4.3.2"
-    mpfr_version="mpfr-2.4.2"
-    mpc_version="mpc-0.8.2"
-    binutils_version="binutils-2.21"
+#     gcc_version="gcc-4.5.3"
+#     gmp_version="gmp-4.3.2"
+#     mpfr_version="mpfr-2.4.2"
+#     mpc_version="mpc-0.8.2"
+#     binutils_version="binutils-2.21"
 
-#    gcc_version=gcc-4.6.3
-#    gmp_version=gmp-5.0.2
-#    mpfr_version=mpfr-3.0.1
-#    mpc_version=mpc-0.9
-#    binutils_version="binutils-2.22"
+   gcc_version=gcc-4.6.3
+   gmp_version=gmp-5.0.2
+   mpfr_version=mpfr-3.0.1
+   mpc_version=mpc-0.9
+   binutils_version="binutils-2.22"
 
     #MinGW versions
     mingw32rt_version="mingwrt-3.20"
     w32api_version="w32api-3.17-2"
-    mingw_w64_version="1.x" #1.x or 2.x
+    mingw_w64_version="2.x" #1.x or 2.x
     ;;
 *)
     echo
