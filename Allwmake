@@ -82,6 +82,7 @@ if isMinGW; then
     echo Copying gcc related DLLs
     echo
     cp $WM_COMPILER_DIR/bin/*.dll $FOAM_LIBBIN
+    cp $WM_COMPILER_DIR/mingw/lib/*.dll $FOAM_LIBBIN
 fi
 
 
