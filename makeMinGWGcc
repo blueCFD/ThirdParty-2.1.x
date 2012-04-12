@@ -630,7 +630,7 @@ final_tweaks()
 
     cd ${PREFIX}/bin
     for afile in *.exe; do
-      case $afile; in
+      case $afile in
         ${TARGET}*.exe) ;;
         *)
           #generate stub shell script

@@ -44,7 +44,7 @@ if isMinGW; then
     FIXED=""
     if [ x`grep -e "#include_next <float.h>" $GCC_FLOAT_H_LOC | wc -l` = "x0" ]; then
 
-      case $1; in
+      case $1 in
         force*)
           echo "#include_next <float.h>" >> $GCC_FLOAT_H_LOC
           ;;
@@ -59,7 +59,7 @@ if isMinGW; then
     
     if [ x`grep -e "#include_next\ *<float.h>" $GCC_FLOAT_H_KILLLOC | wc -l` = "x1" ]; then
 
-      case $1; in
+      case $1 in
         force*)
           mv ${GCC_FLOAT_H_KILLLOC} ${GCC_FLOAT_H_KILLLOC}.old
           grep -v "#include_next\ *<float.h>" ${GCC_FLOAT_H_KILLLOC}.old > ${GCC_FLOAT_H_KILLLOC}
