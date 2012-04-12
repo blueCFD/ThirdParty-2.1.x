@@ -645,6 +645,10 @@ final_tweaks()
       esac
     done
 
+    #fix the float.h issue
+    cd $WM_THIRD_PARTY_DIR
+    ./fixSystemMingw force4win
+
   fi
 
   echo "Installation complete!"

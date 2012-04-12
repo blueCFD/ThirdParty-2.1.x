@@ -34,31 +34,42 @@ if isMinGW; then
   GCC_FLOAT_H_LOC="`$WM_CC -print-libgcc-file-name | sed 's=/[a-z]*\.a$=='`/include/float.h"
   GCC_FLOAT_H_KILLLOC="`$WM_CC -print-libgcc-file-name | sed 's=/[a-z]*\.a$=='`/../../../../mingw/include/float.h"
 
+  if [ "x$1" = "xforce4win" ]; then
+    GCC_FLOAT_H_LOC=`echo $GCC_FLOAT_H_LOC | sed -e 's=mingw/bin=mingw_win/bin='`
+    GCC_FLOAT_H_KILLLOC=`echo $GCC_FLOAT_H_KILLLOC | sed -e 's=mingw/bin=mingw_win/bin='`
+  fi
+
   if [ -e "$GCC_FLOAT_H_LOC" -a -e "$GCC_FLOAT_H_KILLLOC" ]; then
 
     FIXED=""
     if [ x`grep -e "#include_next <float.h>" $GCC_FLOAT_H_LOC | wc -l` = "x0" ]; then
 
-      if [ "x$1" = "xforce" ]; then
-        echo "#include_next <float.h>" >> $GCC_FLOAT_H_LOC
-      else
-        echo -e "You must run the following command in super user mode (su - or sudo):\n"
-        echo -e 'echo "#include_next <float.h>" >> '$GCC_FLOAT_H_LOC "\n"
-      fi
+      case $1; in
+        force*)
+          echo "#include_next <float.h>" >> $GCC_FLOAT_H_LOC
+          ;;
+        *)
+          echo -e "You must run the following command in super user mode (su - or sudo):\n"
+          echo -e 'echo "#include_next <float.h>" >> '$GCC_FLOAT_H_LOC "\n"
+          ;;
+      esac
       
       FIXED="Y"
     fi
     
     if [ x`grep -e "#include_next\ *<float.h>" $GCC_FLOAT_H_KILLLOC | wc -l` = "x1" ]; then
 
-      if [ "x$1" = "xforce" ]; then
-        mv ${GCC_FLOAT_H_KILLLOC} ${GCC_FLOAT_H_KILLLOC}.old
-        grep -v "#include_next\ *<float.h>" ${GCC_FLOAT_H_KILLLOC}.old > ${GCC_FLOAT_H_KILLLOC}
-      else
-        echo -e "You must run the following commands in super user mode (su - or sudo):\n"
-        echo -e "mv ${GCC_FLOAT_H_KILLLOC} ${GCC_FLOAT_H_KILLLOC}.old\n"
-        echo -e "grep -v \"#include_next <float.h>\" ${GCC_FLOAT_H_KILLLOC}.old > ${GCC_FLOAT_H_KILLLOC}"
-      fi
+      case $1; in
+        force*)
+          mv ${GCC_FLOAT_H_KILLLOC} ${GCC_FLOAT_H_KILLLOC}.old
+          grep -v "#include_next\ *<float.h>" ${GCC_FLOAT_H_KILLLOC}.old > ${GCC_FLOAT_H_KILLLOC}
+          ;;
+        *)
+          echo -e "You must run the following commands in super user mode (su - or sudo):\n"
+          echo -e "mv ${GCC_FLOAT_H_KILLLOC} ${GCC_FLOAT_H_KILLLOC}.old\n"
+          echo -e "grep -v \"#include_next <float.h>\" ${GCC_FLOAT_H_KILLLOC}.old > ${GCC_FLOAT_H_KILLLOC}"
+          ;;
+      esac
 
       FIXED="Y"
     fi
