@@ -629,8 +629,20 @@ final_tweaks()
   else #if [ $CROSS4WIN -eq 1 ]; then
 
     cd ${PREFIX}/bin
-    for afile in windres.exe dlltool.exe; do
-      ln -s $afile ${TARGET}-$afile
+    for afile in *.exe; do
+      case $afile; in
+        ${TARGET}*.exe) ;;
+        *)
+          #generate stub shell script
+          echo "#\!/bin/sh" > ${TARGET}-${afile%%.*}
+          echo "$afile $*" >> ${TARGET}-${afile%%.*}
+          chmod +x ${TARGET}-${afile%%.*}
+
+          #generate stub batch file
+          echo "@echo off" > ${TARGET}-${afile%%.*}.bat
+          echo "$afile %1 %2 %3 %4 %5 %6 %7 %8 %9" >> ${TARGET}-${afile%%.*}.bat
+        ;;
+      esac
     done
 
   fi
