@@ -183,6 +183,7 @@ MINGW32RT_BDIR="$buildBASE/$MINGW32RTVERSION"
 W32API_BDIR="$buildBASE/$W32APIVERSION"
 
 MINGW_W64_BDIR="$buildBASE/mingw-w64-crt-$MINGW_W64_VERSION"
+GENDEF_BDIR="$buildBASE/gendef-$MINGW_W64_VERSION"
 
 
 # Make sure these are initialized as we want them
@@ -567,6 +568,47 @@ install_gcc()
 }
 
 
+configure_gendef()
+{
+  [ -d "$GENDEF_BDIR" ] && rm -rf "$GENDEF_BDIR"
+  mkdir -p "$GENDEF_BDIR"
+  cd "$GENDEF_BDIR"
+  echo "Configuring gendef"
+  "$MINGW_W64_HOME/mingw-w64-tools/gendef/configure" --prefix=${PREFIX} \
+      $CONFIGHOST \
+      > ${LOG_FOLDER}/gendef-${WM_COMPILER}_configure.log  2>&1
+  if test $? -ne 0; then
+    echo "make of binutils failed - log available: ${LOG_FOLDER}/gendef-${WM_COMPILER}_configure.log"
+    exit 1
+  fi
+}
+
+
+build_gendef()
+{
+  cd "$GENDEF_BDIR"
+  echo "Building gendef"
+  make -j $WM_NCOMPPROCS CFLAGS="-O2" LDFLAGS="-s" > \
+    ${LOG_FOLDER}/gendef-${WM_COMPILER}_make.log 2>&1
+  if test $? -ne 0; then
+    echo "make of gendef failed - log available: ${LOG_FOLDER}/gendef-${WM_COMPILER}_make.log"
+    exit 1
+  fi
+}
+
+
+install_gendef()
+{
+  cd "$GENDEF_BDIR"
+  echo "Installing gendef"
+  make install > ${LOG_FOLDER}/gendef-${WM_COMPILER}_make-install.log 2>&1
+  if test $? -ne 0; then
+    echo "install of gendef failed - log available: ${LOG_FOLDER}/gendef-${WM_COMPILER}_make-install.log"
+    exit 1
+  fi
+}
+
+
 createSTDCPPShared()
 {
   cd "${PREFIX}/mingw/lib"
@@ -693,6 +735,10 @@ if [ $CROSS4WIN -eq 0 ]; then
 
     build_gcc
     install_gcc
+
+    configure_gendef
+    build_gendef
+    install_gendef
     ;;
   esac
 
@@ -716,6 +762,10 @@ else #cross-compile native compiler for Windows
     install_gcc
 
     copy_mingw_w64_crt
+
+    configure_gendef
+    build_gendef
+    install_gendef
     ;;
   esac
 
