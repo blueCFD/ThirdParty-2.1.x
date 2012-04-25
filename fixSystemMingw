@@ -35,8 +35,8 @@ if isMinGW; then
   GCC_FLOAT_H_KILLLOC="`$WM_CC -print-libgcc-file-name | sed 's=/[a-z]*\.a$=='`/../../../../mingw/include/float.h"
 
   if [ "x$1" = "xforce4win" ]; then
-    GCC_FLOAT_H_LOC=`echo $GCC_FLOAT_H_LOC | sed -e 's=mingw/lib=mingw_win/lib='`
-    GCC_FLOAT_H_KILLLOC=`echo $GCC_FLOAT_H_KILLLOC | sed -e 's=mingw/lib=mingw_win/lib='`
+    GCC_FLOAT_H_LOC=`echo $GCC_FLOAT_H_LOC | sed -e 's=mingw/lib=mingw_win/lib=' -e 's=mingw/bin=mingw_win/bin='`
+    GCC_FLOAT_H_KILLLOC=`echo $GCC_FLOAT_H_KILLLOC | sed -e 's=mingw/lib=mingw_win/lib=' -e 's=mingw/bin=mingw_win/bin='`
   fi
 
   if [ -e "$GCC_FLOAT_H_LOC" -a -e "$GCC_FLOAT_H_KILLLOC" ]; then
