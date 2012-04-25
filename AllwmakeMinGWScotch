@@ -56,12 +56,17 @@ if [ -z "$SCOTCH_VERSION" ]; then
     fi
 fi
 
+#Detect if running directly on Windows
+SCOTCH_ON_WINDOWS=""
+if onWin; then
+  SCOTCH_ON_WINDOWS=".win"
+fi
 
 echo ========================================
 echo "Build Scotch decomposition library $SCOTCH_VERSION"
 echo "    $SCOTCH_ARCH_PATH"
 
-scotchMakefile=../../etc/wmakeFiles/scotch/Makefile.inc.$WM_COMPILER
+scotchMakefile=../../etc/wmakeFiles/scotch/Makefile.inc.${WM_COMPILER}${SCOTCH_ON_WINDOWS}
 
 if isMinGW && [ ! -e "$SCOTCH_VERSION/mingw.patch.complete" ]; then
 (
