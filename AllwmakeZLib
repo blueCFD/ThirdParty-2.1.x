@@ -60,7 +60,7 @@ fi
 #build the library
 wmake libso $ZLIBNAMENVERSION
 
-if isMinGW; then
+if isMinGW && ! onWin; then
   for folder in "${WM_COMPILER_DIR}" "${WM_COMPILER_DIR}_win"; do
     if [ -d "${folder}" ]; then
       cp $ZLIBNAMENVERSION/zlib.h $ZLIBNAMENVERSION/zconf.h ${folder}/mingw/include/
