@@ -119,8 +119,7 @@ function create_gcccompatible_library
   if [ -n "${DLLVERNUM}" ]; then
     cd lib
     pexports -o msmpi.dll > libmpi.def
-    WM_DLLTOOL=`echo $WM_CC | sed s/gcc/dlltool/`
-    $WM_DLLTOOL -d libmpi.def -l libmpi.a -D msmpi.dll
+    ${WM_COMPILER_ARCH}-dlltool -d libmpi.def -l libmpi.a -D msmpi.dll
   else
     cp $SRCDIR/*.a lib/
   fi

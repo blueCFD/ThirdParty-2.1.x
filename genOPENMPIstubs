@@ -50,10 +50,9 @@ wmakeCheckPwd "$WM_THIRD_PARTY_DIR" || {
 create_gcccompatible_library()
 {
   echo -e "\033[1m creating libmpi.a \033[0m"
-  WM_DLLTOOL=`echo $WM_CC | sed s/gcc/dlltool/`
   cd $MPI_ARCH_PATH/lib
   pexports -o $MPI_ARCH_PATH/bin/libmpi.dll > openmpi.def
-  $WM_DLLTOOL -d openmpi.def -l libmpi.a -D libmpi.dll
+  ${WM_COMPILER_ARCH}-dlltool -d openmpi.def -l libmpi.a -D libmpi.dll
 }
 
 patch_mpi_includes()

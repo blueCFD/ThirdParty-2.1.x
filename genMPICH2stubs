@@ -50,10 +50,9 @@ wmakeCheckPwd "$WM_THIRD_PARTY_DIR" || {
 create_gcccompatible_library()
 {
   echo -e "\033[1m creating libmpi.a \033[0m"
-  WM_DLLTOOL=`echo $WM_CC | sed s/gcc/dlltool/`
   cd $MPI_ARCH_PATH/lib
   pexports -o mpich2mpi.dll > mpich2.def
-  $WM_DLLTOOL -d mpich2.def -l libmpi.a -D MPICH2MPI.DLL
+  ${WM_COMPILER_ARCH}-dlltool -d mpich2.def -l libmpi.a -D MPICH2MPI.DLL
 }
 
 

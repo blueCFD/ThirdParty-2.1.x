@@ -62,10 +62,9 @@ fi
 create_gcccompatible_library()
 {
   echo -e "\033[1m creating libpython.a \033[0m"
-  WM_DLLTOOL=`echo $WM_CC | sed s/gcc/dlltool/`
   cd $PYTHON_ARCH_PATH/lib
   pexports -o python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}.dll > libpython.def
-  $WM_DLLTOOL -d libpython.def -l libpython.a -D PYTHON${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}.DLL
+  ${WM_COMPILER_ARCH}-dlltool -d libpython.def -l libpython.a -D PYTHON${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}.DLL
 }
 
 

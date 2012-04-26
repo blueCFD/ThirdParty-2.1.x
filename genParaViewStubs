@@ -48,14 +48,13 @@ wmakeCheckPwd "$WM_THIRD_PARTY_DIR" || {
 
 create_gcccompatible_libraries()
 {
-  WM_DLLTOOL=`echo $WM_CC | sed s/gcc/dlltool/`
   for library in $ParaView_DIR/bin/*.dll; do
     filenameext=${library##*/}
     filename=${filenameext%%.*}
     echo -e "\033[1m creating stub for $library in '.a' format \033[0m"
     cd "$ParaView_DIR/lib/paraview-$ParaView_MAJOR"
     pexports -o "$library" > ${filename}.def
-    $WM_DLLTOOL -d ${filename}.def -l lib${filename}.a -D ${filename}.dll
+    ${WM_COMPILER_ARCH}-dlltool -d ${filename}.def -l lib${filename}.a -D ${filename}.dll
   done
 }
 
