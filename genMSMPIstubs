@@ -211,8 +211,10 @@ else
       echo -e "\033[1m Unpacking necessary MSMPI installation files...\033[0m"
       unpack_files
 
-      #this function will take care of the logistics associated with using pexports.
-      build_pexports
+      if ! onWin; then
+        #this function will take care of the logistics associated with using pexports.
+        build_pexports
+      fi
 
       echo -e "\033[1m Generating MSMPI stub... \033[0m"
 

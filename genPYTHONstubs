@@ -79,8 +79,10 @@ fi
 
 if [ ! -e "$PYTHON_ARCH_PATH/lib/libpython.a" ]; then
 
-  #this function will take care of the logistics associated with using pexports.
-  build_pexports
+  if ! onWin; then
+    #this function will take care of the logistics associated with using pexports.
+    build_pexports
+  fi
 
   echo -e "\033[1m Generating Python library interfaces for MinGW... \033[0m"
 

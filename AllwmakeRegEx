@@ -111,7 +111,7 @@ install_regex()
 
 copyLibsToFoam()
 {
-  if [ -d "$REGEXTARGET/lib" ]; then
+  if [ -d "$REGEXTARGET/lib" ] && ! onWin; then
     for folder in "${WM_COMPILER_DIR}" "${WM_COMPILER_DIR}_win"; do
       if [ -d "${folder}" ]; then
         cp -r $REGEXTARGET/* ${folder}/mingw/
