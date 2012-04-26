@@ -65,28 +65,3 @@ index dfcee04..79e8126 100644
  #  define DLLIMPORT _declspec (dllimport)
  # else
  #  define DLLIMPORT
-@@ -154,15 +154,15 @@
- #endif /* DLLIMPORT */
- 
- 
--#if defined (TECPLOTKERNEL)
--# define LIBCALL
--# define LIBFUNCTION
--#elif defined (MAKEARCHIVE)
--# define LIBCALL STDCALL
--# define LIBFUNCTION EXTERNC DLLEXPORT
--#else /* !TECPLOTKERNAL && !MAKEARCHIVE */
--# define LIBCALL STDCALL
--# define LIBFUNCTION EXTERNC DLLIMPORT
-+#if defined (TECPLOTKERNEL)
-+# define LIBCALL
-+# define LIBFUNCTION
-+#elif defined (MAKEARCHIVE)
-+# define LIBCALL STDCALL
-+# define LIBFUNCTION EXTERNC DLLEXPORT
-+#else /* !TECPLOTKERNAL && !MAKEARCHIVE */
-+# define LIBCALL STDCALL
-+# define LIBFUNCTION EXTERNC DLLIMPORT
- #endif
- 
- /*
