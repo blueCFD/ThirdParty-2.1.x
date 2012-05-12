@@ -24,10 +24,14 @@
 #    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Script
-#     makeMake
+#     makeMinGWMake
 #
 # Description
-#     Build script for Make
+#     Experimental build script for Make and MinGW.
+#     Note: doesn't work the way it was expected. Either the resulting make 
+#     must only be used on pure Windows, or has to be built with a pure MSys
+#     shell. The reason is simple: without a strict MSys, it won't depend on
+#     MSys*.dll's, therefore paths get "tortured and mangled".
 #
 #------------------------------------------------------------------------------
 makePACKAGE=`. etc/defaults.sh ; echo make-\$make_version`
