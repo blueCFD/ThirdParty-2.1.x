@@ -26,6 +26,9 @@
 # Description
 #     This script generates the link libraries for Gcc on ParaView DLLs.
 #
+#     Apparently this can't be done with MSVC libraries:
+#         http://www.mingw.org/wiki/MixingCompilers
+#
 #------------------------------------------------------------------------------
 
 if ! isMinGW; then
@@ -53,7 +56,11 @@ create_gcccompatible_libraries()
     filename=${filenameext%%.*}
     echo -e "\033[1m creating stub for $library in '.a' format \033[0m"
     cd "$ParaView_DIR/lib/paraview-$ParaView_MAJOR"
-    pexports -o "$library" > ${filename}.def
+
+    #pexports has issues with some special DLLs.
+    #pexports -o "$library" > ${filename}.def
+
+    gendef "$library" && \
     ${WM_COMPILER_ARCH}-dlltool -d ${filename}.def -l lib${filename}.a -D ${filename}.dll
   done
 }
