@@ -40,6 +40,10 @@ wmakeCheckPwd "$WM_THIRD_PARTY_DIR" || {
 }
 . etc/tools/ThirdPartyFunctions
 . etc/tools/makeExtraThirdPartyFunctions
+
+#Source buildLogs helper stuff
+. $WM_PROJECT_DIR/bin/tools/BuildLogFunctions
+
 #------------------------------------------------------------------------------
 
 usage() {
@@ -95,7 +99,7 @@ W32APIVERSION=`. etc/defaults.sh ; echo \$w32api_version`
 MINGW_W64_VERSION=`. etc/defaults.sh ; echo \$mingw_w64_version`
 
 #LOG FOLDER
-LOG_FOLDER="$WM_THIRD_PARTY_DIR/../buildLogs"
+LOG_FOLDER="$BUILD_LOG_FOLDER"
 
 #-----------------------------------------------------
 #

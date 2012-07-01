@@ -39,6 +39,9 @@ wmakeCheckPwd "$WM_THIRD_PARTY_DIR" || {
 }
 . etc/tools/ThirdPartyFunctions
 . etc/tools/makeExtraThirdPartyFunctions
+
+#Source buildLogs helper stuff
+. $WM_PROJECT_DIR/bin/tools/BuildLogFunctions
 #------------------------------------------------------------------------------
 
 usage() {
@@ -85,7 +88,7 @@ done
 PEXPORTSVERSION="pexports-0.44-1"
 
 #LOG FOLDER
-LOG_FOLDER="$WM_THIRD_PARTY_DIR/../buildLogs"
+LOG_FOLDER="$BUILD_LOG_FOLDER"
 
 #-----------------------------------------------------
 #
@@ -124,12 +127,6 @@ else
     exit 1
   fi
 fi
-
-#make sure the log folder exists and expand its path
-if [ ! -d "$LOG_FOLDER" ]; then
-  mkdir -p $LOG_FOLDER
-fi
-LOG_FOLDER=`( cd "$LOG_FOLDER" && pwd )`
 
 PEXPORTS_BDIR="$PEXPORTS_HOME"
 
