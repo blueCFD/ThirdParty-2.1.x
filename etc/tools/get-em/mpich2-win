@@ -52,6 +52,7 @@ GE_update()
   wget "$1" -O $testFile > /dev/null 2>&1
   grep -e '>[0-9]\.[0-9\.]*' $testFile | \
     sed -e 's=.*"\(>[0-9]\.[0-9\.]*[a-crp]*[0-9]*\)/<.*=\1=' -e 's_>_'$appName'-win=_' | \
+    grep -v -e '=0.9\|=1.0\|=1.1\|=1.2' | \
     sort -u > ${versionCacheFile}_tmp
 
   cat ${versionCacheFile}_tmp | \
