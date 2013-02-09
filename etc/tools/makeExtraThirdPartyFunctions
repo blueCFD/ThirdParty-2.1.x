@@ -102,7 +102,7 @@ definedBUILDmachine()
   machine=`uname -m`
   operatingsystem=`uname -s`
   case $operatingsystem in
-  Linux)
+  Linux|MINGW*)
     operatingsystem="linux"
     ;;
 
